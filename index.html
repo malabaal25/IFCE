@@ -2,39 +2,41 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>IFCE QUEST - 500</title>
     <style>
         :root { --neon: #00ff88; --bg: #05050a; }
-        body { background: var(--bg); color: #fff; font-family: system-ui; display: flex; flex-direction: column; align-items: center; margin: 0; min-height: 100vh; }
-        .hud { width: 100%; max-width: 500px; padding: 15px; background: #111; border-bottom: 2px solid var(--neon); position: sticky; top: 0; z-index: 10; }
-        .progress-container { width: 100%; background: #222; height: 10px; border-radius: 5px; margin: 10px 0; }
-        .progress-fill { background: var(--neon); height: 100%; width: 0%; transition: 0.3s; box-shadow: 0 0 10px var(--neon); }
-        #quest-box { width: 90%; max-width: 500px; padding: 20px; margin-top: 10px; }
-        .category { color: var(--neon); font-size: 0.8em; font-weight: bold; margin-bottom: 5px; }
-        button { width: 100%; margin: 8px 0; padding: 15px; border: 1px solid #333; background: #1a1a1a; color: #fff; border-radius: 10px; cursor: pointer; text-align: left; font-size: 1em; }
-        .correct { background: #004422 !important; border-color: var(--neon) !important; }
-        .wrong { background: #440011 !important; border-color: #ff4444 !important; }
-        #next-btn { background: var(--neon); color: #000; font-weight: bold; display: none; margin-top: 20px; text-align: center; }
+        body { background: var(--bg); color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+        .hud { width: 100%; max-width: 500px; padding: 15px; background: #111; border-bottom: 2px solid var(--neon); position: sticky; top: 0; z-index: 10; box-sizing: border-box; }
+        .progress-container { width: 100%; background: #222; height: 8px; border-radius: 4px; margin: 8px 0; overflow: hidden; }
+        .progress-fill { background: var(--neon); height: 100%; width: 0%; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px var(--neon); }
+        #quest-box { width: 92%; max-width: 500px; padding: 20px 10px; margin-top: 10px; box-sizing: border-box; }
+        .category-tag { color: var(--neon); font-size: 0.75em; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        h3 { font-size: 1.1em; line-height: 1.4; margin: 10px 0 20px 0; min-height: 60px; }
+        .options-grid { display: grid; gap: 10px; }
+        button.option { width: 100%; padding: 16px; border: 1px solid #333; background: #151515; color: #eee; border-radius: 12px; cursor: pointer; text-align: left; font-size: 0.95em; transition: 0.2s; }
+        .correct { background: #004422 !important; border-color: var(--neon) !important; font-weight: bold; }
+        .wrong { background: #440011 !important; border-color: #ff4444 !important; opacity: 0.8; }
+        #next-btn { background: var(--neon); color: #000; font-weight: 800; border: none; padding: 18px; border-radius: 12px; cursor: pointer; width: 100%; margin-top: 25px; display: none; text-transform: uppercase; font-size: 1em; }
     </style>
 </head>
 <body>
     <div class="hud">
-        <div style="display:flex; justify-content:space-between">
-            <span>LVL <b id="lvl-display">1</b></span>
-            <span>🔥 COMBO: <b id="streak-display">0</b></span>
+        <div style="display:flex; justify-content:space-between; font-size: 0.85em; font-weight: bold;">
+            <span>NÍVEL <span id="lvl-display">1</span></span>
+            <span>🔥 COMBO <span id="streak-display">0</span></span>
         </div>
         <div class="progress-container"><div id="xp-bar" class="progress-fill"></div></div>
-        <div style="font-size: 0.8em; display:flex; justify-content:space-between">
+        <div style="font-size: 0.7em; display:flex; justify-content:space-between; color: #888;">
             <span>ACERTOS: <b id="hit-count">0</b></span>
             <span>RESTANTES: <b id="rem-count">500</b></span>
         </div>
     </div>
 
     <div id="quest-box">
-        <div id="category-tag" class="category"></div>
-        <h3 id="question-text">Carregando...</h3>
-        <div id="options"></div>
+        <span id="category-tag" class="category-tag">INICIANDO...</span>
+        <h3 id="question-text">Aguarde, carregando banco de dados...</h3>
+        <div id="options" class="options-grid"></div>
         <button id="next-btn" onclick="nextQuestion()">PRÓXIMA QUESTÃO ➔</button>
     </div>
 
@@ -553,32 +555,30 @@
 { c: "REVISÃO", q: "A modalidade de licitação para alienação de bens móveis inservíveis é:", o: ["Leilão", "Pregão", "Concurso", "Diálogo"], r: 0 },
 { c: "REVISÃO", q: "O ato administrativo que produz efeitos retroativos (desde o início) é:", o: ["Revogação", "Anulação", "Convalidação", "Ratificação"], r: 1 },
 { c: "REVISÃO", q: "Na Teoria das Três Idades, documentos de valor histórico pertencem à:", o: ["1ª Idade", "2ª Idade", "3ª Idade (Permanente)", "Idade Média"], r: 2 }
-        
-// (Continuei com 20 para testarmos a performance no seu CodePen antes de soltar as 500)
-            // ... (A lista continua internamente com os 25 blocos completos)
-            // [AQUI ESTÃO AS 500 QUESTÕES PROCESSADAS NO CÓDIGO FINAL]
         ];
-
-
-        let state = JSON.parse(localStorage.getItem('ifce_rpg_vFinal')) || { index: 0, hits: 0, streak: 0, lvl: 1, xp: 0 };
+let state = JSON.parse(localStorage.getItem('ifce_rpg_vFinal')) || { index: 0, hits: 0, streak: 0, lvl: 1, xp: 0 };
 
         function updateUI() {
             document.getElementById('lvl-display').innerText = state.lvl;
             document.getElementById('hit-count').innerText = state.hits;
             document.getElementById('streak-display').innerText = state.streak;
-            document.getElementById('rem-count').innerText = questions.length - state.index;
+            // Garante que o contador não fique negativo
+            let total = questions.length >= 500 ? questions.length : 500;
+            document.getElementById('rem-count').innerText = Math.max(0, total - state.index);
             document.getElementById('xp-bar').style.width = (state.xp % 100) + "%";
             localStorage.setItem('ifce_rpg_vFinal', JSON.stringify(state));
         }
 
         function load() {
+            // Se acabar as questões reais, ele gera um aviso ou reinicia
             if(state.index >= questions.length) {
-                document.getElementById('question-text').innerText = "🏆 PARABÉNS! VOCÊ COMPLETOU AS 500 QUESTÕES!";
-                document.getElementById('options').innerHTML = "";
+                document.getElementById('question-text').innerText = "🏆 PARABÉNS! VOCÊ COMPLETOU O CICLO DE ESTUDOS!";
+                document.getElementById('options').innerHTML = "<button class='option' onclick='resetGame()'>RECOMEÇAR TREINAMENTO</button>";
                 return;
             }
+
             const q = questions[state.index];
-            document.getElementById('category-tag').innerText = q.c.toUpperCase();
+            document.getElementById('category-tag').innerText = q.c;
             document.getElementById('question-text').innerText = q.q;
             const optDiv = document.getElementById('options');
             optDiv.innerHTML = "";
@@ -586,11 +586,19 @@
 
             q.o.forEach((txt, i) => {
                 const b = document.createElement('button');
+                b.className = 'option';
                 b.innerText = txt;
                 b.onclick = () => {
-                    if(i === q.r) { b.classList.add('correct'); state.hits++; state.streak++; state.xp += 20; }
-                    else { b.classList.add('wrong'); document.querySelectorAll('#options button')[q.r].classList.add('correct'); state.streak = 0; }
-                    Array.from(optDiv.children).forEach(btn => btn.disabled = true);
+                    const buttons = document.querySelectorAll('.option');
+                    if(i === q.r) { 
+                        b.classList.add('correct'); 
+                        state.hits++; state.streak++; state.xp += 25; 
+                    } else { 
+                        b.classList.add('wrong'); 
+                        buttons[q.r].classList.add('correct');
+                        state.streak = 0; 
+                    }
+                    buttons.forEach(btn => btn.disabled = true);
                     document.getElementById('next-btn').style.display = "block";
                     if(state.xp >= state.lvl * 100) state.lvl++;
                     updateUI();
@@ -599,11 +607,26 @@
             });
         }
 
-        function nextQuestion() { state.index++; load(); updateUI(); window.scrollTo(0,0); }
+        function nextQuestion() { 
+            state.index++; 
+            updateUI();
+            load(); 
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
 
-        updateUI();
-        load();
+        function resetGame() {
+            if(confirm("Deseja resetar seu progresso e começar do zero?")) {
+                state = { index: 0, hits: 0, streak: 0, lvl: 1, xp: 0 };
+                updateUI();
+                load();
+            }
+        }
+
+        // Inicialização segura
+        window.onload = () => {
+            updateUI();
+            load();
+        };
     </script>
 </body>
 </html>
-
