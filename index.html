@@ -1,633 +1,74 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>IFCE QUEST - 500</title>
-    <style>
-        :root { --neon: #00ff88; --bg: #05050a; }
-        body { background: var(--bg); color: #fff; font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; margin: 0; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
-        .hud { width: 100%; max-width: 500px; padding: 15px; background: #111; border-bottom: 2px solid var(--neon); position: sticky; top: 0; z-index: 10; box-sizing: border-box; }
-        .progress-container { width: 100%; background: #222; height: 8px; border-radius: 4px; margin: 8px 0; overflow: hidden; }
-        .progress-fill { background: var(--neon); height: 100%; width: 0%; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 0 10px var(--neon); }
-        #quest-box { width: 92%; max-width: 500px; padding: 20px 10px; margin-top: 10px; box-sizing: border-box; }
-        .category-tag { color: var(--neon); font-size: 0.75em; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-        h3 { font-size: 1.1em; line-height: 1.4; margin: 10px 0 20px 0; min-height: 60px; }
-        .options-grid { display: grid; gap: 10px; }
-        button.option { width: 100%; padding: 16px; border: 1px solid #333; background: #151515; color: #eee; border-radius: 12px; cursor: pointer; text-align: left; font-size: 0.95em; transition: 0.2s; }
-        .correct { background: #004422 !important; border-color: var(--neon) !important; font-weight: bold; }
-        .wrong { background: #440011 !important; border-color: #ff4444 !important; opacity: 0.8; }
-        #next-btn { background: var(--neon); color: #000; font-weight: 800; border: none; padding: 18px; border-radius: 12px; cursor: pointer; width: 100%; margin-top: 25px; display: none; text-transform: uppercase; font-size: 1em; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IFCE Questões</title>
+
+<style>
+body {
+  background:#05050a;
+  color:#fff;
+  font-family:system-ui;
+  text-align:center;
+  margin:0;
+}
+button {
+  width:90%;
+  padding:15px;
+  margin:10px 0;
+  border-radius:10px;
+  border:none;
+  background:#151515;
+  color:#fff;
+}
+.correct { background:#004422; }
+.wrong { background:#440011; }
+</style>
 </head>
+
 <body>
-    <div class="hud">
-        <div style="display:flex; justify-content:space-between; font-size: 0.85em; font-weight: bold;">
-            <span>NÍVEL <span id="lvl-display">1</span></span>
-            <span>🔥 COMBO <span id="streak-display">0</span></span>
-        </div>
-        <div class="progress-container"><div id="xp-bar" class="progress-fill"></div></div>
-        <div style="font-size: 0.7em; display:flex; justify-content:space-between; color: #888;">
-            <span>ACERTOS: <b id="hit-count">0</b></span>
-            <span>RESTANTES: <b id="rem-count">500</b></span>
-        </div>
-    </div>
 
-    <div id="quest-box">
-        <span id="category-tag" class="category-tag">INICIANDO...</span>
-        <h3 id="question-text">Aguarde, carregando banco de dados...</h3>
-        <div id="options" class="options-grid"></div>
-        <button id="next-btn" onclick="nextQuestion()">PRÓXIMA QUESTÃO ➔</button>
-    </div>
+<h3 id="category">Carregando…</h3>
+<h2 id="question">Aguarde…</h2>
+<div id="options"></div>
+<button onclick="next()">Próxima</button>
 
-    <script>
-        const questions = [
-            // BLOCOS 1-25 UNIFICADOS (Resumo das 500 questões)
-            { c: "Português", q: "Qual a função do 'que' em: 'Desejo que você passe'?", o: ["Pronome Relativo", "Conjunção Integrante", "Preposição", "Advébio"], r: 1 },
-            { c: "Direito ADM", q: "O poder que permite à Administração restringir direitos individuais em favor do interesse público é o:", o: ["Poder Hierárquico", "Poder Disciplinar", "Poder de Polícia", "Poder Regulamentar"], r: 2 },
-            { c: "Matemática", q: "Qual o valor de x na equação 2x + 10 = 40?", o: ["10", "15", "20", "25"], r: 1 },
-            { c: "Informática", q: "No Windows, qual atalho é usado para fechar a janela ativa?", o: ["Alt + F4", "Ctrl + C", "Win + L", "Alt + Tab"], r: 0 },
-            { c: "Lei 8.112", q: "A vacância de cargo público decorrerá de, EXCETO:", o: ["Exoneração", "Demissão", "Promoção", "Readaptação"], r: 3 },
-            { c: "Arquivologia", q: "O método de arquivamento que utiliza cores para facilitar a busca é o:", o: ["Alfabético", "Variadex", "Geográfico", "Numérico"], r: 1 },
-            { c: "Materiais", q: "O estoque destinado a cobrir incertezas na demanda chama-se:", o: ["Estoque de Segurança", "Estoque Médio", "Estoque Máximo", "Giro"], r: 0 },
-            { c: "Licitação", q: "Modalidade para contratação de bens e serviços comuns:", o: ["Leilão", "Pregão", "Concurso", "Diálogo"], r: 1 },
-            { c: "AFO", q: "Etapa da despesa que consiste na verificação do direito do credor:", o: ["Empenho", "Liquidação", "Pagamento", "Fixação"], r: 1 },
-            { c: "Ética", q: "A cortesia e urbanidade no atendimento são:", o: ["Opcionais", "Deveres do servidor", "Proibidas", "Apenas para chefes"], r: 1 },
-            // Cole este conteúdo dentro da variável 'banco' no seu código:
-{ c: "Português", q: "Qual a forma correta de grafia?", o: ["Auto-estima", "Autoestima", "Autooestima", "Auto estima"], r: 1 },
-{ c: "Lei 8.112", q: "A licença para tratar de interesses particulares tem prazo de até:", o: ["1 ano", "2 anos", "3 anos", "5 anos"], r: 2 },
-{ c: "Português", q: "Assinale a opção com erro de concordância:", o: ["Bebida é bom", "A bebida é boa", "É proibido entrada", "A entrada é proibido"], r: 3 },
-{ c: "Lei 8.112", q: "O servidor responde civil, penal e administrativamente pelo exercício irregular de suas atribuições. As sanções podem:", o: ["Se acumular", "Ser apenas uma", "Ser apenas penais", "Ser apenas civis"], r: 0 },
-{ c: "Português", q: "Na frase 'Vende-se casas', o erro é de:", o: ["Regência", "Concordância", "Crase", "Pontuação"], r: 1 },
-{ c: "Lei 8.112", q: "O vencimento do cargo efetivo, acrescido das vantagens pecuniárias permanentes, é:", o: ["O salário", "A remuneração", "O subsídio", "O provento"], r: 1 },
-{ c: "Português", q: "Indique o antônimo de 'Efêmero':", o: ["Passageiro", "Duradouro", "Curto", "Rápido"], r: 1 },
-{ c: "Lei 8.112", q: "A ajuda de custo destina-se a compensar despesas de instalação do servidor que, no interesse do serviço, passe a ter exercício em nova sede, com mudança de:", o: ["Cargo", "Domicílio", "Estado", "Horário"], r: 1 },
-{ c: "Português", q: "Qual o coletivo de 'Lobos'?", o: ["Bando", "Alcateia", "Manada", "Cardume"], r: 1 },
-{ c: "Lei 8.112", q: "O servidor poderá ser afastado para servir em organismo internacional de que o Brasil participe ou com o qual coopere, com perda total da:", o: ["Nacionalidade", "Remuneração", "Aposentadoria", "Saúde"], r: 1 },
-{ c: "Português", q: "O uso do hífen está correto em:", o: ["Micro-ondas", "Microondas", "Anti-social", "Antisocial"], r: 0 },
-{ c: "Lei 8.112", q: "São requisitos básicos para investidura em cargo público, EXCETO:", o: ["Nacionalidade brasileira", "Nível de escolaridade", "Idade mínima de 21 anos", "Aptidão física e mental"], r: 2 },
-{ c: "Português", q: "Identifique a conjunção explicativa:", o: ["Mas", "Porém", "Porque", "Portanto"], r: 2 },
-{ c: "Lei 8.112", q: "A recondução é o retorno do servidor estável ao cargo anteriormente ocupado e decorrerá de:", o: ["Inabilitação em estágio probatório", "Aposentadoria", "Falecimento", "Promoção"], r: 0 },
-{ c: "Português", q: "O plural de 'Mal' é:", o: ["Mals", "Males", "Mau", "Maus"], r: 1 },
-{ c: "Lei 8.112", q: "O servidor estável só perderá o cargo em virtude de sentença judicial transitada em julgado ou de processo administrativo disciplinar no qual lhe seja assegurada:", o: ["Ampla defesa", "Demissão imediata", "Aposentadoria compulsória", "Redistribuição"], r: 0 },
-{ c: "Português", q: "A palavra 'excessivo' é escrita com:", o: ["X e SS", "XC e SS", "S e SS", "CH e S"], r: 1 },
-{ c: "Lei 8.112", q: "Ao servidor estudante que mudar de sede no interesse da administração é assegurada, na localidade da nova residência, matrícula em instituição de ensino congênere, em qualquer época, independente de:", o: ["Vaga", "Dinheiro", "Prova", "Idade"], r: 0 },
-{ c: "Português", q: "Qual o sinônimo de 'Retificar'?", o: ["Confirmar", "Corrigir", "Repetir", "Avisar"], r: 1 },
-{ c: "Lei 8.112", q: "O dia 28 de outubro é consagrado ao:", o: ["Professor", "Servidor Público", "IFCE", "Estudante"], r: 1 },
-            { c: "Informática", q: "No Windows, qual o nome do recurso que permite fixar janelas nas laterais da tela?", o: ["Snap Assist", "Task View", "Cortana", "Windows Hello"], r: 0 },
-{ c: "Matemática", q: "Um técnico administrativo arquiva 12 processos por hora. Quantos arquivará em 6 horas e meia?", o: ["72", "78", "80", "84"], r: 1 },
-{ c: "Lei 11.091", q: "A carreira dos TAEs (IFCE) é estruturada em cinco níveis de classificação, designados pelas letras:", o: ["A, B, C, D, E", "1, 2, 3, 4, 5", "I, II, III, IV, V", "S, A, B, C, D"], r: 0 },
-{ c: "Informática", q: "No Google Chrome, qual atalho abre uma nova janela em modo anônimo?", o: ["Ctrl+N", "Ctrl+T", "Ctrl+Shift+N", "Ctrl+Shift+P"], r: 2 },
-{ c: "Matemática", q: "Qual o próximo número da sequência: 2, 4, 8, 16, ...?", o: ["20", "24", "32", "64"], r: 2 },
-{ c: "Lei 8.112", q: "O retorno à atividade de servidor em disponibilidade mediante aproveitamento é:", o: ["Obrigatório", "Facultativo", "Proibido", "Apenas por concurso"], r: 0 },
-{ c: "Informática", q: "O que significa a sigla URL?", o: ["Uniform Resource Locator", "Universal Radio Link", "Unit Resource List", "Universal Remote Line"], r: 0 },
-{ c: "Matemática", q: "Se a negação de 'Todo servidor é dedicado' é:", o: ["Nenhum servidor é dedicado", "Algum servidor não é dedicado", "Todos são preguiçosos", "Ninguém é dedicado"], r: 1 },
-{ c: "Administração", q: "No atendimento ao público, a empatia consiste em:", o: ["Dar razão sempre", "Colocar-se no lugar do outro", "Ser rápido", "Ignorar reclamações"], r: 1 },
-{ c: "Lei 11.091", q: "A mudança de nível de capacitação, no mesmo nível de classificação, chama-se:", o: ["Progressão por Mérito", "Progressão por Capacitação", "Promoção", "Ascensão"], r: 1 },
-{ c: "Informática", q: "Qual destas extensões refere-se a um arquivo de imagem?", o: [".docx", ".xlsx", ".png", ".mp3"], r: 2 },
-{ c: "Matemática", q: "Quanto é 2 + 2 x 2?", o: ["8", "6", "4", "2"], r: 1 },
-{ c: "Português", q: "A palavra 'órgão' é acentuada por ser:", o: ["Oxítona", "Paroxítona terminada em ão", "Proparoxítona", "Monossílabo tônico"], r: 1 },
-{ c: "Lei 8.112", q: "Removido é o deslocamento do servidor, a pedido ou de ofício, no âmbito do:", o: ["Mesmo quadro", "Mesmo estado", "Mesmo ministério", "Mesmo país"], r: 0 },
-{ c: "Informática", q: "O 'Coração' de um computador, onde o processamento ocorre, é a:", o: ["RAM", "SSD", "CPU", "HD"], r: 2 },
-{ c: "Matemática", q: "Um bolo leva 3 ovos. Quantos ovos para 5 bolos?", o: ["15", "12", "18", "10"], r: 0 },
-{ c: "Administração", q: "O documento usado para comunicação interna oficial entre setores é o:", o: ["E-mail pessoal", "Memorando/Ofício", "Bilhete", "Post-it"], r: 1 },
-{ c: "Português", q: "Assinale a alternativa com erro de ortografia:", o: ["Analisar", "Pesquisar", "Paralizar", "Avisar"], r: 2 },
-{ c: "Lei 8.112", q: "A penalidade de advertência será aplicada por escrito e prescreverá em:", o: ["180 dias", "2 anos", "5 anos", "90 dias"], r: 0 },
-{ c: "Informática", q: "Qual protocolo é usado para envio de e-mails?", o: ["HTTP", "SMTP", "FTP", "DHCP"], r: 1 }
-        { c: "Direito ADM", q: "O poder da Administração de punir internamente seus servidores por infrações é o:", o: ["Poder Hierárquico", "Poder Disciplinar", "Poder de Polícia", "Poder Regulamentar"], r: 1 },
-{ c: "Ética", q: "Segundo o Decreto 1.171/94, o servidor público não pode omitir a verdade, mesmo que contrária aos interesses da:", o: ["Própria família", "Administração Pública", "Sua religião", "Sua segurança"], r: 1 },
-{ c: "Redação Oficial", q: "Qual o fecho adequado para comunicações oficiais dirigidas a autoridades de mesma hierarquia?", o: ["Com carinho,", "Atenciosamente,", "Respeitosamente,", "Cordialmente,"], r: 1 },
-{ c: "ADM Pública", q: "A descentralização administrativa ocorre quando o Estado distribui competências para:", o: ["Outra pessoa jurídica", "O mesmo órgão", "O próprio setor", "Servidores terceirizados"], r: 0 },
-{ c: "Direito ADM", q: "São atributos do ato administrativo, EXCETO:", o: ["Presunção de Legitimidade", "Imperatividade", "Autoexecutoriedade", "Incompetência"], r: 3 },
-{ c: "Ética", q: "A cortesia e a urbanidade são deveres do servidor. O oposto disso no Habitica causaria:", o: ["Dano no HP", "Ganho de Ouro", "Aumento de Level", "Combo de XP"], r: 0 },
-{ c: "Redação Oficial", q: "O documento padrão para comunicações entre órgãos da Administração Pública, seguindo o Novo Manual, é o:", o: ["Memorando", "Ofício", "Aviso", "Exposição de Motivos"], r: 1 },
-{ c: "Matemática", q: "Em uma divisão, o dividendo é 20 e o divisor é 4. Qual o quociente?", o: ["5", "4", "6", "10"], r: 0 },
-{ c: "Português", q: "A palavra 'estratégia' possui quantos fonemas?", o: ["8", "9", "10", "11"], r: 1 },
-{ c: "Lei 8.112", q: "O servidor que acumula ilegalmente cargos públicos, se agir de má-fé, sofrerá a pena de:", o: ["Advertência", "Suspensão", "Demissão", "Multa"], r: 2 },
-{ c: "ADM Pública", q: "O princípio da EFICIÊNCIA foi inserido na Constituição Federal pela:", o: ["EC 19/98", "EC 45/04", "Lei 8.112", "Constituição de 88 original"], r: 0 },
-{ c: "Redação Oficial", q: "No padrão ofício, a fonte recomendada pelo Manual da Presidência é:", o: ["Comic Sans", "Times New Roman / Calibri", "Arial Black", "Impact"], r: 1 },
-{ c: "Direito ADM", q: "Atos que não admitem revogação são os atos:", o: ["Discricionários", "Vinculados", "Simples", "Complexos"], r: 1 },
-{ c: "Português", q: "Na frase 'Assisti ao jogo', o termo 'ao jogo' é:", o: ["Objeto Direto", "Objeto Indireto", "Complemento Nominal", "Adjunto Adnominal"], r: 1 },
-{ c: "Informática", q: "Qual destes é um sistema operacional de código aberto (Open Source)?", o: ["Windows", "macOS", "Linux", "iOS"], r: 2 },
-{ c: "ADM Pública", q: "O foco da Gestão Pública Gerencial é no:", o: ["Processo", "Resultado/Cidadão", "Burocracia", "Hierarquia rígida"], r: 1 },
-{ c: "Ética", q: "O trabalho desenvolvido pelo servidor público perante a comunidade deve ser entendido como:", o: ["Um fardo", "Um privilégio", "Acréscimo ao seu próprio bem-estar", "Apenas obrigação"], r: 2 },
-{ c: "Lei 11.091", q: "O incentivo à qualificação é devido ao servidor que possuir educação formal superior ao exigido para o:", o: ["Estado", "Cargo", "Setor", "Concurso anterior"], r: 1 },
-{ c: "Redação Oficial", q: "O pronome de tratamento para Reitores de Universidades/Institutos Federais é:", o: ["Vossa Excelência", "Vossa Magnificência", "Vossa Senhoria", "Vossa Santidade"], r: 1 },
-{ c: "Português", q: "Qual figura de linguagem indica exagero?", o: ["Metáfora", "Hipérbole", "Eufemismo", "Ironia"], r: 1 }
-        { c: "Português", q: "Qual a classe gramatical da palavra 'felizmente'?", o: ["Adjetivo", "Advébio", "Substantivo", "Conjunção"], r: 1 },
-{ c: "Lei 8.112", q: "A suspensão de um servidor pode ser convertida em multa na base de:", o: ["30% por dia", "50% por dia", "100% por dia", "25% por dia"], r: 1 },
-{ c: "Informática", q: "No Windows, o comando 'Ctrl + Shift + Esc' abre diretamente o:", o: ["Painel de Controle", "Gerenciador de Tarefas", "Prompt de Comando", "Menu Iniciar"], r: 1 },
-{ c: "Matemática", q: "Em uma Progressão Aritmética (2, 5, 8...), qual o 5º termo?", o: ["11", "14", "17", "20"], r: 1 },
-{ c: "ADM Pública", q: "O ato de delegar funções visa principalmente a:", o: ["Centralização", "Eficiência e rapidez", "Aumentar a burocracia", "Punir subordinados"], r: 1 },
-{ c: "Lei 11.091", q: "O TAE que faz mestrado tem direito a um percentual de incentivo de:", o: ["25%", "30%", "52%", "75%"], r: 2 },
-{ c: "Português", q: "Assinale o erro de crase:", o: ["Fui à casa de meus pais", "Fui à escola", "Diga à ela a verdade", "Refiro-me àquela moça"], r: 2 },
-{ c: "Informática", q: "No Linux, o comando 'ls' serve para:", o: ["Remover arquivos", "Listar diretórios", "Limpar a tela", "Sair do sistema"], r: 1 },
-{ c: "Direito ADM", q: "A revogação de um ato administrativo ocorre por razões de:", o: ["Ilegalidade", "Conveniência e Oportunidade", "Vício de forma", "Decisão judicial"], r: 1 },
-{ c: "Ética", q: "É vedado ao servidor público o uso do cargo para obter:", o: ["Resultados públicos", "Vantagem indevida", "Eficiência", "Elogios da chefia"], r: 1 },
-{ c: "Matemática", q: "Se 20% de X é 40, quanto é X?", o: ["100", "200", "400", "80"], r: 1 },
-{ c: "Redação Oficial", q: "O uso de gírias e regionalismos em documentos oficiais fere o princípio da:", o: ["Impessoalidade", "Clareza/Padrão", "Concisão", "Publicidade"], r: 1 },
-{ c: "Português", q: "Qual o sinônimo de 'Incipiente'?", o: ["Sabio", "Iniciante", "Experiente", "Antigo"], r: 1 },
-{ c: "Lei 8.112", q: "A remoção a pedido, independente do interesse da administração, ocorre para:", o: ["Tratamento de saúde", "Aproximação da família", "Ambos", "Nenhuma das anteriores"], r: 2 },
-{ c: "ADM Pública", q: "A Burocracia de Max Weber preza pela:", o: ["Informalidade", "Impessoalidade e Normas", "Falta de hierarquia", "Decisões emocionais"], r: 1 },
-{ c: "Informática", q: "Um 'Firewall' serve para:", o: ["Aumentar a internet", "Filtrar tráfego de rede", "Limpar o disco rígido", "Resfriar a CPU"], r: 1 },
-{ c: "Lei 11.091", q: "O interstício para progressão por mérito é de:", o: ["12 meses", "18 meses", "24 meses", "36 meses"], r: 1 },
-{ c: "Português", q: "Qual alternativa apresenta hiato?", o: ["Saída", "Peixe", "Caixa", "Pai"], r: 0 },
-{ c: "Matemática", q: "A negação de 'P e Q' é:", o: ["Não P e Não Q", "Não P ou Não Q", "Se P então Q", "P ou Q"], r: 1 },
-{ c: "Direito ADM", q: "Atos enunciativos são aqueles que:", o: ["Ordenam algo", "Certificam um fato", "Punem alguém", "Dão licença"], r: 1 },
-// [Aqui entraria a repetição de temas para fixação]
-{ c: "Português", q: "Escolha a frase correta:", o: ["Haviam pessoas lá", "Havia pessoas lá", "Existia pessoas lá", "Faziam anos que não via"], r: 1 },
-{ c: "Lei 8.112", q: "A vacância por 'posse em outro cargo inacumulável' gera direito a:", o: ["Indenização", "Recondução (se estável)", "Multa", "Expulsão"], r: 1 },
-{ c: "Informática", q: "No Excel, a célula A1 tem 10 e B1 tem 20. Qual a fórmula da soma?", o: ["=SOMA(A1;B1)", "=ADD(A1+B1)", "SUM A1+B1", "=TOTAL(A1:B1)"], r: 0 },
-{ c: "Redação Oficial", q: "Documentos oficiais devem ser escritos em qual pessoa?", o: ["1ª pessoa do singular", "3ª pessoa do singular/plural", "1ª pessoa do plural", "Gírias locais"], r: 1 },
-{ c: "Matemática", q: "Quantos segundos tem 1 hora?", o: ["60", "600", "3600", "360"], r: 2 }
-        { c: "Direito ADM", q: "Qual o prazo para o servidor apresentar defesa em um PAD (Processo Administrativo Disciplinar)?", o: ["5 dias", "10 dias", "15 dias", "30 dias"], r: 1 },
-{ c: "Arquivologia", q: "Arquivos que aguardam o fim do prazo de precaução e têm pouco uso são chamados de:", o: ["Correntes", "Intermediários", "Permanentes", "Mortos"], r: 1 },
-{ c: "ADM Pública", q: "O princípio que proíbe o uso de nomes, símbolos ou imagens que caracterizem promoção pessoal de autoridades em publicidade pública é:", o: ["Legalidade", "Impessoalidade", "Moralidade", "Eficiência"], r: 1 },
-{ c: "Gestão de Materiais", q: "O método de avaliação de estoque onde 'o primeiro que entra é o primeiro que sai' é o:", o: ["UEPS", "PEPS", "Custo Médio", "Just-in-time"], r: 1 },
-{ c: "Direito ADM", q: "A transferência compulsória de um servidor para outra localidade, por interesse da administração, chama-se:", o: ["Remoção de ofício", "Redistribuição", "Reintegração", "Reversão"], r: 0 },
-{ c: "Arquivologia", q: "A eliminação de documentos deve ser precedida de aprovação por qual comissão?", o: ["Comissão de Licitação", "Comissão de Ética", "Comissão de Avaliação de Documentos", "Comissão Disciplinar"], r: 2 },
-{ c: "Lei 8.112", q: "O servidor que se recusar a ser submetido a inspeção médica determinada por autoridade competente poderá ser punido com:", o: ["Demissão", "Suspensão de até 15 dias", "Advertência verbal", "Multa de 50%"], r: 1 },
-{ c: "Informática", q: "O que é 'Ransomware'?", o: ["Software de busca", "Vírus que sequestra dados pedindo resgate", "Antivírus gratuito", "Sistema de backup"], r: 1 },
-{ c: "Matemática", q: "Um triângulo tem base 10 e altura 5. Qual sua área?", o: ["50", "25", "15", "20"], r: 1 },
-{ c: "Português", q: "Qual o plural de 'Pão-de-ló'?", o: ["Pães-de-ló", "Pão-de-lós", "Pães-de-lós", "Pãos-de-lós"], r: 0 },
-{ c: "Direito ADM", q: "Atos administrativos que podem ser revogados são apenas os:", o: ["Vinculados", "Discricionários", "Inexistentes", "Nulos"], r: 1 },
-{ c: "ADM Pública", q: "O orçamento público que detalha as ações e os objetivos a serem atingidos é o:", o: ["Orçamento Tradicional", "Orçamento-Programa", "Orçamento Base Zero", "Orçamento Participativo"], r: 1 },
-{ c: "Gestão de Materiais", q: "O estoque mínimo de segurança serve para evitar o:", o: ["Superávit", "Ruptura de estoque", "Excesso de carga", "Custo de armazenagem"], r: 1 },
-{ c: "Lei 11.091", q: "A jornada de trabalho dos TAEs pode ser flexibilizada para 30h semanais em casos de:", o: ["Trabalho noturno apenas", "Atendimento ininterrupto ao público", "Pedido do servidor", "Falta de verba"], r: 1 },
-{ c: "Redação Oficial", q: "Em um Ofício, o local e a data devem estar alinhados à:", o: ["Esquerda", "Direita", "Centro", "Justificado"], r: 1 },
-{ c: "Informática", q: "Qual a principal função da memória RAM?", o: ["Armazenar arquivos permanentemente", "Processar cálculos matemáticos", "Armazenar dados em uso temporário", "Conectar à internet"], r: 2 },
-{ c: "Português", q: "Na frase 'Ele chegou cedo', a palavra 'cedo' é um:", o: ["Adjetivo", "Advérbio de tempo", "Substantivo", "Preposição"], r: 1 },
-{ c: "Direito ADM", q: "A aplicação de multa de trânsito é um exemplo do poder de:", o: ["Hierarquia", "Polícia", "Disciplina", "Regulamentar"], r: 1 },
-{ c: "Matemática", q: "Qual a raiz quadrada de 144?", o: ["10", "11", "12", "14"], r: 2 },
-{ c: "Lei 8.112", q: "A demissão por abandono de cargo ocorre após quantos dias de ausência intencional?", o: ["15 dias", "30 dias consecutivos", "60 dias intercalados", "45 dias"], r: 1 }
-        { c: "Licitação", q: "Segundo a Lei 14.133, a modalidade de licitação para escolha de trabalho técnico ou científico é o:", o: ["Leilão", "Concurso", "Pregão", "Diálogo Competitivo"], r: 1 },
-{ c: "Matemática", q: "Se um produto custa R$ 200,00 e sofre um desconto de 15%, qual o valor final?", o: ["R$ 170,00", "R$ 185,00", "R$ 175,00", "R$ 190,00"], r: 0 },
-{ c: "Informática", q: "Qual protocolo é responsável por atribuir endereços IP automaticamente na rede?", o: ["DNS", "DHCP", "FTP", "HTTP"], r: 1 },
-{ c: "Português", q: "Assinale a alternativa que contém apenas substantivos abstratos:", o: ["Mesa, Cadeira", "Beleza, Alegria", "Pedra, Rio", "Caneta, Lápis"], r: 1 },
-{ c: "Lei 8.112", q: "O auxílio-natalidade é devido à servidora por motivo de nascimento de filho, em quantia equivalente ao:", o: ["Menor vencimento do cargo", "Maior vencimento do cargo", "Salário Mínimo", "Vencimento básico do servidor"], r: 0 },
-{ c: "Licitação", q: "Na Lei 14.133, o 'Pregão' é obrigatório para a aquisição de:", o: ["Bens e serviços comuns", "Obras de engenharia complexas", "Serviços de inteligência", "Armamentos"], r: 0 },
-{ c: "Matemática", q: "Qual a negação da proposição 'Se chove, então a pista fica escorregadia'?", o: ["Se não chove, a pista não escorregadia", "Chove e a pista não fica escorregadia", "Não chove e a pista fica escorregadia", "Se a pista está escorregadia, então chove"], r: 1 },
-{ c: "Informática", q: "A memória que retém os dados mesmo com o computador desligado é a:", o: ["RAM", "Cache", "ROM", "Registrador"], r: 2 },
-{ c: "Português", q: "Na oração 'O povo elegeu-o representante', o termo 'representante' é:", o: ["Adjunto Adnominal", "Predicativo do Objeto", "Objeto Direto", "Complemento Nominal"], r: 1 },
-{ c: "Lei 8.112", q: "A readaptação é o provimento do servidor em cargo de atribuições e responsabilidades compatíveis com a limitação que tenha sofrido em sua:", o: ["Capacidade física ou mental", "Situação financeira", "Carga horária", "Vontade política"], r: 0 },
-{ c: "ADM Pública", q: "A 'Accountability' na administração pública refere-se à:", o: ["Contabilidade privada", "Prestação de contas e responsabilidade", "Acúmulo de cargos", "Falta de transparência"], r: 1 },
-{ c: "Arquivologia", q: "O método de arquivamento alfabético que organiza por nomes de cidades é o:", o: ["Variadex", "Geográfico", "Numérico", "Ideográfico"], r: 1 },
-{ c: "Matemática", q: "Um capital de R$ 1000 aplicado a juros simples de 10% ao mês, após 2 meses terá um montante de:", o: ["R$ 1100", "R$ 1200", "R$ 1210", "R$ 1020"], r: 1 },
-{ c: "Direito ADM", q: "Qual órgão é responsável pelo controle externo do IFCE?", o: ["CGU", "TCU", "MEC", "Conselho Superior"], r: 1 },
-{ c: "Português", q: "Qual o antônimo de 'Vultoso'?", o: ["Grande", "Exagerado", "Irrisório", "Enorme"], r: 2 },
-{ c: "Informática", q: "No Windows, o que faz o atalho 'Win + D'?", o: ["Abre o Explorador", "Minimiza todas as janelas (Mostra a Área de Trabalho)", "Bloqueia o PC", "Abre as Configurações"], r: 1 },
-{ c: "Lei 11.091", q: "O desenvolvimento na carreira do TAE por 'Progressão por Mérito Profissional' ocorre a cada:", o: ["12 meses", "18 meses", "24 meses", "36 meses"], r: 1 },
-{ c: "Licitação", q: "A licitação é DISPENSÁVEL em casos de:", o: ["Inexistência de competidores", "Guerra ou grave perturbação da ordem", "Obra de arte única", "Contratação de artista consagrado"], r: 1 },
-{ c: "Português", q: "Assinale o uso correto do 'porquê':", o: ["Não sei por que você foi embora", "Não sei porque você foi embora", "Não sei porquê você foi embora", "Não sei por quê você foi embora"], r: 0 },
-{ c: "Matemática", q: "Quantos são os anagramas da palavra 'IFCE'?", o: ["12", "24", "4", "16"], r: 1 }
-        { c: "AFO", q: "O princípio orçamentário que estabelece que todas as receitas e despesas devem constar na LOA é o:", o: ["Princípio da Unidade", "Princípio da Universalidade", "Princípio da Anualidade", "Princípio da Exclusividade"], r: 1 },
-{ c: "Informática", q: "Qual tecnologia permite armazenar e acessar dados e programas pela internet, em vez do disco rígido?", o: ["Cloud Computing (Nuvem)", "Mainframe", "Intranet", "Backup Local"], r: 0 },
-{ c: "Matemática", q: "Qual a negação da frase 'João é médico ou Maria é enfermeira'?", o: ["João não é médico ou Maria não é enfermeira", "João não é médico e Maria não é enfermeira", "Se João não é médico, Maria é enfermeira", "João é médico e Maria não é enfermeira"], r: 1 },
-{ c: "AFO", q: "A lei que estima as receitas e fixa as despesas para o exercício financeiro seguinte é a:", o: ["PPA", "LDO", "LOA", "LRF"], r: 2 },
-{ c: "Informática", q: "Um 'Spyware' tem como objetivo principal:", o: ["Acelerar o computador", "Monitorar atividades do usuário e coletar informações", "Proteção contra vírus", "Gerenciar o hardware"], r: 1 },
-{ c: "Português", q: "Na palavra 'Inconstitucionalmente', qual o radical?", o: ["Constitu", "Institu", "Constitucional", "Mente"], r: 0 },
-{ c: "Lei 8.112", q: "O servidor que, a serviço, se afastar da sede em caráter eventual ou transitório para outro ponto do território nacional, fará jus a:", o: ["Ajuda de custo", "Diárias", "Transporte grátis", "Gratificação por encargo"], r: 1 },
-{ c: "Matemática", q: "Se 3/4 de um valor é R$ 75,00, qual o valor total?", o: ["R$ 100,00", "R$ 125,00", "R$ 90,00", "R$ 150,00"], r: 0 },
-{ c: "AFO", q: "O PPA (Plano Plurianual) tem vigência de quantos anos?", o: ["1 ano", "2 anos", "4 anos", "5 anos"], r: 2 },
-{ c: "Informática", q: "Qual o nome da técnica de enganar pessoas para obter dados confidenciais através de e-mails falsos?", o: ["Phishing", "Spamming", "Cracking", "Buffering"], r: 0 },
-{ c: "Direito ADM", q: "A responsabilidade civil do Estado no Brasil, em regra, é:", o: ["Subjetiva", "Objetiva", "Inexistente", "Apenas por dolo"], r: 1 },
-{ c: "Português", q: "Assinale a alternativa que apresenta um substantivo sobrecomum:", o: ["O dentista", "A criança", "O estudante", "O colega"], r: 1 },
-{ c: "AFO", q: "O exercício financeiro no Brasil coincide com:", o: ["O ano letivo", "O ano civil (jan a dez)", "O mandato do Reitor", "O semestre fiscal"], r: 1 },
-{ c: "Matemática", q: "Em um concurso com 100 vagas, 20% são para cotas. Quantas vagas sobram para ampla concorrência?", o: ["70", "80", "90", "50"], r: 1 },
-{ c: "Informática", q: "Qual componente é conhecido como o 'cérebro' do computador?", o: ["Memória RAM", "Placa de Vídeo", "Processador (CPU)", "Disco Rígido"], r: 2 },
-{ c: "Lei 8.112", q: "A remoção para acompanhar cônjuge que foi deslocado no interesse da administração é um direito do servidor:", o: ["Sim, independente do interesse da administração", "Não, depende de vaga", "Somente se o cônjuge for do IFCE", "Apenas se houver permuta"], r: 0 },
-{ c: "AFO", q: "A LDO (Lei de Diretrizes Orçamentárias) serve de elo entre:", o: ["O PPA e a LOA", "A LOA e o Balanço Geral", "O PPA e a LRF", "A Constituição e o Código Civil"], r: 0 },
-{ c: "Português", q: "Qual a função sintática de 'ao mestre' em 'Obedeça ao mestre'?", o: ["Objeto Direto", "Objeto Indireto", "Complemento Nominal", "Agente da Passiva"], r: 1 },
-{ c: "Matemática", q: "Qual o valor de x na equação 2x + 10 = 30?", o: ["5", "10", "15", "20"], r: 1 },
-{ c: "Lei 11.091", q: "O nível de classificação 'E' exige, como requisito mínimo, escolaridade de nível:", o: ["Médio", "Técnico", "Superior", "Fundamental"], r: 2 }
-        { c: "Atendimento", q: "No atendimento ao cidadão, a linguagem utilizada pelo servidor deve ser:", o: ["Rebuscada e técnica", "Clara, simples e objetiva", "Gírias populares", "Apenas por sinais"], r: 1 },
-{ c: "Ética", q: "O descumprimento dos deveres éticos pelo servidor público pode resultar na pena de:", o: ["Demissão", "Censura pela Comissão de Ética", "Prisão", "Multa em dinheiro"], r: 1 },
-{ c: "Gestão", q: "A estratégia de resolver conflitos onde ambas as partes cedem um pouco para chegar a um acordo é a:", o: ["Competição", "Conciliação/Compromisso", "Evitação", "Acomodação"], r: 1 },
-{ c: "Direito ADM", q: "A prerrogativa da Administração de rever seus próprios atos, anulando os ilegais e revogando os inconvenientes, chama-se:", o: ["Autotutela", "Hierarquia", "Continuidade", "Especialidade"], r: 0 },
-{ c: "Atendimento", q: "O 'ruído' no processo de comunicação refere-se a:", o: ["Som alto no ambiente", "Qualquer barreira que interfira na mensagem", "Falar muito rápido", "Uso de microfone ruim"], r: 1 },
-{ c: "Português", q: "Qual a forma correta do superlativo de 'Fiel'?", o: ["Fielíssimo", "Fidelíssimo", "Muito fiel", "Fielzão"], r: 1 },
-{ c: "Lei 8.112", q: "A licença por motivo de doença em pessoa da família é:", o: ["Sempre remunerada", "Remunerada até certos limites de prazo", "Nunca remunerada", "Apenas para filhos"], r: 1 },
-{ c: "Matemática", q: "Uma impressora imprime 50 folhas em 5 minutos. Em 20 minutos ela imprimirá:", o: ["100 folhas", "150 folhas", "200 folhas", "250 folhas"], r: 2 },
-{ c: "Gestão", q: "Na Matriz SWOT, as 'Forças' e 'Fraquezas' referem-se ao:", o: ["Ambiente Externo", "Ambiente Interno", "Futuro da empresa", "Concorrência"], r: 1 },
-{ c: "Direito ADM", q: "O servidor público que utiliza veículo oficial para fins particulares fere o princípio da:", o: ["Eficiência", "Moralidade", "Publicidade", "Legalidade"], r: 1 },
-{ c: "Português", q: "Assinale a alternativa em que há um erro de acentuação:", o: ["Baú", "Ítem", "Pé", "História"], r: 1 },
-{ c: "Informática", q: "O que é o 'Kernel' de um sistema operacional?", o: ["A interface gráfica", "O núcleo do sistema", "O navegador de internet", "O antivírus"], r: 1 },
-{ c: "Atendimento", q: "O atendimento prioritário é garantido por lei para, EXCETO:", o: ["Idosos e Gestantes", "Pessoas com deficiência", "Servidores do próprio órgão", "Pessoas com crianças de colo"], r: 2 },
-{ c: "Lei 8.112", q: "A 'Readaptação' gera direito a aumento salarial?", o: ["Sim, automático", "Não, mantém-se a remuneração do cargo anterior", "Sim, se o novo cargo for melhor", "Não, o salário diminui"], r: 1 },
-{ c: "Matemática", q: "Qual a probabilidade de tirar 'cara' ao lançar uma moeda?", o: ["25%", "50%", "75%", "100%"], r: 1 },
-{ c: "Gestão", q: "O conceito de 'Empowerment' (Empoderamento) foca em:", o: ["Centralizar o poder", "Delegar autoridade e responsabilidade", "Aumentar a vigilância", "Demisssão em massa"], r: 1 },
-{ c: "Direito ADM", q: "Atos administrativos nulos podem ser convalidados?", o: ["Sempre", "Nunca", "Apenas se o vício for sanável", "Se o juiz quiser"], r: 2 },
-{ c: "Português", q: "A expressão 'vossa excelência' é usada para:", o: ["Amigos", "Autoridades de alto escalão", "Comerciantes", "Familiares"], r: 1 },
-{ c: "Informática", q: "No Word, o atalho 'Ctrl + S' serve para:", o: ["Salvar", "Sublinhar", "Selecionar tudo", "Substituir"], r: 1 },
-{ c: "Lei 11.091", q: "O Plano de Carreira dos TAEs incentiva a educação formal através do:", o: ["Vale-livro", "Incentivo à Qualificação", "Folga para estudar", "Promoção por idade"], r: 1 }
-        { c: "Gestão", q: "O estilo de liderança em que o líder foca na participação do grupo e nas decisões conjuntas é:", o: ["Autocrático", "Democrático", "Liberal (Laissez-faire)", "Ditatorial"], r: 1 },
-{ c: "Arquivologia", q: "Documentos que possuem valor histórico, probatório e informativo são guardados no arquivo:", o: ["Corrente", "Intermediário", "Permanente", "Setorial"], r: 2 },
-{ c: "Português", q: "Qual a alternativa em que o uso do 'onde' está correto?", o: ["Onde você quer chegar?", "A situação onde me encontro", "O lugar onde moro", "A ideia onde pensei"], r: 2 },
-{ c: "Matemática", q: "Se um concurso tem 1.000 inscritos e 50 vagas, qual a relação candidato/vaga?", o: ["10", "20", "25", "50"], r: 1 },
-{ c: "Gestão", q: "A Teoria de Maslow organiza as necessidades humanas em uma pirâmide. Na base estão as necessidades:", o: ["Sociais", "De Segurança", "Fisiológicas", "De Autoestima"], r: 2 },
-{ c: "Arquivologia", q: "O princípio de que os documentos de um arquivo não devem ser misturados aos de outros arquivos é o princípio da:", o: ["Proveniência", "Pertinência", "Organicidade", "Unicidade"], r: 0 },
-{ c: "Direito ADM", q: "O ato de delegar competência é:", o: ["Proibido", "Irrevogável", "Facultativo e revogável a qualquer tempo", "Sempre obrigatório"], r: 2 },
-{ c: "Informática", q: "Qual comando no Linux é usado para mudar a senha do usuário?", o: ["passwd", "chown", "chmod", "pwd"], r: 0 },
-{ c: "Português", q: "Assinale o substantivo que muda de sentido ao mudar de gênero (o/a):", o: ["O/A estudante", "O/A dentista", "O/A capital", "O/A criança"], r: 2 },
-{ c: "Lei 8.112", q: "O servidor em estágio probatório pode exercer quais cargos?", o: ["Nenhum", "Apenas de chefia média", "Cargos de provimento em comissão ou funções de confiança", "Apenas cargos efetivos"], r: 2 },
-{ c: "Cultura Org.", q: "O conjunto de hábitos, crenças e valores compartilhados pelos membros de uma instituição é a:", o: ["Estatística", "Cultura Organizacional", "Hierarquia", "Burocracia"], r: 1 },
-{ c: "Matemática", q: "Qual o valor de 5! (fatorial de 5)?", o: ["25", "60", "120", "100"], r: 2 },
-{ c: "Arquivologia", q: "A técnica de proteção de documentos contra insetos e fungos chama-se:", o: ["Indexação", "Expurgo/Fumigação", "Arquivamento", "Protocolo"], r: 1 },
-{ c: "Português", q: "A frase 'Ele falou baixo' contém um advérbio de:", o: ["Lugar", "Modo", "Intensidade", "Afirmação"], r: 1 },
-{ c: "Direito ADM", q: "Qual elemento do ato administrativo refere-se ao resultado prático que se pretende alcançar?", o: ["Competência", "Finalidade", "Forma", "Motivo"], r: 1 },
-{ c: "Informática", q: "Um arquivo com extensão .PDF é lido principalmente pelo:", o: ["Excel", "Adobe Acrobat Reader", "Notepad", "Photoshop"], r: 1 },
-{ c: "Gestão", q: "A comunicação que ocorre entre colegas de mesmo nível hierárquico é chamada de:", o: ["Ascendente", "Descendente", "Horizontal", "Transversal"], r: 2 },
-{ c: "Lei 11.091", q: "O servidor TAE pode se afastar para pós-graduação stricto sensu, desde que:", o: ["Tenha 10 anos de casa", "Esteja no estágio probatório", "Haja interesse da administração e relação com a área", "O Reitor seja seu amigo"], r: 2 },
-{ c: "Matemática", q: "Em um triângulo retângulo, se os catetos medem 3 e 4, a hipotenusa mede:", o: ["5", "6", "7", "10"], r: 0 },
-{ c: "Português", q: "Qual o coletivo de 'Peixes'?", o: ["Bando", "Cardume", "Alcateia", "Enxame"], r: 1 }
-        { c: "Materiais", q: "Na classificação de materiais, a Curva ABC baseia-se na importância de valor. Os itens 'A' são:", o: ["Maioria em quantidade, baixo valor", "Minoria em quantidade, alto valor", "Valor médio, quantidade média", "Itens sem importância"], r: 1 },
-{ c: "Processo ADM", q: "Segundo a Lei 9.784, a Administração tem o dever de emitir decisão em processos de sua competência no prazo de até:", o: ["15 dias", "30 dias", "60 dias", "5 dias"], r: 1 },
-{ c: "ADM Geral", q: "No ciclo PDCA, a etapa onde se comparam os resultados com o planejado é:", o: ["Plan (P)", "Do (D)", "Check (C)", "Act (A)"], r: 2 },
-{ c: "Materiais", q: "O inventário realizado ao final do exercício financeiro para balanço patrimonial é o:", o: ["Inventário Rotativo", "Inventário Geral/Periódico", "Inventário Permanente", "Inventário Cíclico"], r: 1 },
-{ c: "Processo ADM", q: "Um servidor que tem interesse direto ou indireto na matéria do processo deve declarar seu/sua:", o: ["Amizade", "Impedimento", "Suspeição", "Competência"], r: 1 },
-{ c: "ADM Geral", q: "A função administrativa que consiste em verificar se tudo ocorre conforme o plano e as ordens é o:", o: ["Planejamento", "Organização", "Direção", "Controle"], r: 3 },
-{ c: "Português", q: "Qual a forma correta: 'Haverão festas' ou 'Haverá festas'?", o: ["Haverão", "Haverá", "Haveram", "Haveriam"], r: 1 },
-{ c: "Lei 8.112", q: "O adicional por serviço extraordinário (Hora Extra) terá remuneração superior à normal em pelo menos:", o: ["25%", "50%", "100%", "75%"], r: 1 },
-{ c: "Informática", q: "Qual atalho no navegador serve para atualizar (refresh) a página atual?", o: ["F1", "F5", "F11", "F12"], r: 1 },
-{ c: "Matemática", q: "Qual a média aritmética simples de 10, 20 e 30?", o: ["15", "20", "25", "30"], r: 1 },
-{ c: "Materiais", q: "Materiais que perdem suas características físicas ou químicas pelo uso são materiais de:", o: ["Consumo", "Permanentes", "Patrimoniais", "Imobiliários"], r: 0 },
-{ c: "Processo ADM", q: "Na Lei 9.784, quando não houver competência legal exclusiva, um órgão pode delegar parte de sua competência a outro. Isso é:", o: ["Proibido", "Permitido", "Obrigatório", "Viciado"], r: 1 },
-{ c: "ADM Geral", q: "A departamentalização que agrupa pessoas conforme o tipo de produto ou serviço é a:", o: ["Funcional", "Por Clientes", "Por Produtos", "Geográfica"], r: 2 },
-{ c: "Ética", q: "A função pública deve ser vista como exercício de virtude. Quem trabalha no IFCE deve ser:", o: ["Rude para ser rápido", "Eficiente e Urbanizado (cortês)", "Indiferente ao público", "Burocrata rígido"], r: 1 },
-{ c: "Português", q: "O antônimo de 'Efêmero' é:", o: ["Curto", "Passageiro", "Perene", "Rápido"], r: 2 },
-{ c: "Informática", q: "O que significa a sigla CPU?", o: ["Central Processing Unit", "Control Power User", "Computer Personal Unit", "Core Power Universal"], r: 0 },
-{ c: "Matemática", q: "Se a base de um retângulo dobra e a altura mantém-se, a área:", o: ["Triplica", "Dobra", "Mantém-se", "Cai pela metade"], r: 1 },
-{ c: "Lei 11.091", q: "O ingresso nos cargos da carreira dos TAEs dar-se-á no padrão inicial do nível de classificação, mediante:", o: ["Indicação do Reitor", "Concurso público de provas ou de provas e títulos", "Análise de currículo", "Eleição"], r: 1 },
-{ c: "ADM Geral", q: "O Planejamento que foca no longo prazo e envolve a organização como um todo é o:", o: ["Operacional", "Tático", "Estratégico", "Logístico"], r: 2 },
-{ c: "Processo ADM", q: "Os atos administrativos devem ser motivados, com indicação dos fatos e dos fundamentos jurídicos. Isso visa o:", o: ["Sigilo", "Controle da legalidade", "Aumento da burocracia", "Esconder falhas"], r: 1 }
-        { c: "Matemática", q: "Um capital de R$ 500,00 aplicado a juros simples de 2% ao mês, durante 3 meses, gera quanto de JUROS?", o: ["R$ 30,00", "R$ 10,00", "R$ 60,00", "R$ 15,00"], r: 0 },
-{ c: "Redação Of.", q: "O documento que registra resumidamente o que ocorreu em uma reunião é a:", o: ["Ata", "Relatório", "Aviso", "Edital"], r: 0 },
-{ c: "Matemática", q: "Um desconto de 20% seguido de outro desconto de 10% sobre o novo valor equivale a um desconto único de:", o: ["30%", "28%", "25%", "32%"], r: 1 },
-{ c: "Redação Of.", q: "As atas de reuniões oficiais, para evitar fraudes, devem ser escritas:", o: ["Com muitos espaços em branco", "Sem parágrafos ou espaços em branco", "A lápis", "Apenas em tópicos soltos"], r: 1 },
-{ c: "Direito ADM", q: "A modalidade de licitação entre interessados devidamente cadastrados é a:", o: ["Tomada de Preços", "Convite", "Concurso", "Leilão"], r: 0 },
-{ c: "Matemática", q: "Quanto é 25% de 80?", o: ["20", "25", "15", "10"], r: 0 },
-{ c: "ADM Geral", q: "O documento que apresenta a descrição detalhada das atividades de uma unidade em um período é o:", o: ["Memorando", "Relatório", "Ofício", "Circular"], r: 1 },
-{ c: "Português", q: "Assinale a alternativa que apresenta erro de concordância verbal:", o: ["Fui eu que fiz", "Fomos nós que fizemos", "Fui eu quem fez", "Fomos nós que fez"], r: 3 },
-{ c: "Lei 8.112", q: "O auxílio-reclusão é devido à família do servidor afastado por motivo de prisão, desde que sua remuneração seja:", o: ["De baixo valor (conforme lei)", "Qualquer valor", "Acima de 10 mil reais", "O servidor seja ocupante de cargo comissionado"], r: 0 },
-{ c: "Informática", q: "Qual tecnologia é usada para conectar dispositivos sem fio em curtas distâncias?", o: ["Ethernet", "Bluetooth", "Fiber Optic", "SATA"], r: 1 },
-{ c: "Matemática", q: "Em juros simples, a fórmula para calcular o Montante (M) é:", o: ["M = C + I", "M = C * I", "M = C / I", "M = I - C"], r: 0 },
-{ c: "Redação Of.", q: "O termo 'Ad Referendum' em decisões administrativas significa:", o: ["Definitivo", "Sujeito a aprovação posterior", "Cancelado", "Urgente"], r: 1 },
-{ c: "ADM Geral", q: "A divisão do trabalho que gera a especialização das tarefas é um conceito de:", o: ["Fayol", "Maslow", "Mayo", "Vroom"], r: 0 },
-{ c: "Português", q: "Qual a função da vírgula em 'João, venha aqui'?", o: ["Isolar o aposto", "Isolar o vocativo", "Indicar elipse", "Separar orações"], r: 1 },
-{ c: "Matemática", q: "Se 2/5 de uma verba é R$ 400,00, qual o valor total da verba?", o: ["R$ 800,00", "R$ 1.000,00", "R$ 1.200,00", "R$ 900,00"], r: 1 },
-{ c: "Informática", q: "Qual destes é um dispositivo de SAÍDA de dados?", o: ["Teclado", "Mouse", "Monitor", "Scanner"], r: 2 },
-{ c: "Lei 8.112", q: "A licença para atividade política inicia-se com o registro da candidatura e termina:", o: ["No dia da eleição", "No dia seguinte ao pleito", "30 dias após a eleição", "Na posse do cargo político"], r: 1 },
-{ c: "Português", q: "Qual palavra é um substantivo coletivo de 'Mapas'?", o: ["Atlas", "Pinacoteca", "Acervo", "Cancioneiro"], r: 0 },
-{ c: "Matemática", q: "Um aumento de 50% sobre um valor de R$ 60,00 resulta em:", o: ["R$ 90,00", "R$ 120,00", "R$ 80,00", "R$ 100,00"], r: 0 },
-{ c: "Direito ADM", q: "O poder de polícia administrativa incide sobre:", o: ["Bens, direitos e atividades", "Apenas pessoas", "Apenas crimes penais", "Somente servidores"], r: 0 }
-        { c: "Gestão", q: "O estilo de liderança onde o líder dá total liberdade aos subordinados para tomarem decisões é o:", o: ["Autocrático", "Democrático", "Liberal (Laissez-faire)", "Situacional"], r: 2 },
-{ c: "Motivação", q: "Na Teoria dos Dois Fatores de Herzberg, o salário é considerado um fator:", o: ["Motivacional", "Higiênico", "Psicológico", "Social"], r: 1 },
-{ c: "Gestão", q: "A liderança que se adapta conforme a maturidade dos subordinados e a situação é a:", o: ["Liderança Situacional", "Liderança Rígida", "Liderança Carismática", "Liderança Liberal"], r: 0 },
-{ c: "Gestão Pessoas", q: "O processo de atrair candidatos qualificados para ocupar cargos na organização chama-se:", o: ["Seleção", "Recrutamento", "Treinamento", "Integração"], r: 1 },
-{ c: "Motivação", q: "Segundo Maslow, a necessidade de ser respeitado e reconhecido pelos outros pertence ao nível de:", o: ["Segurança", "Social", "Estima", "Auto-realização"], r: 2 },
-{ c: "Gestão", q: "A avaliação de desempenho em que o funcionário é avaliado por chefes, colegas, subordinados e clientes é a:", o: ["Avaliação 90 graus", "Avaliação 180 graus", "Avaliação 360 graus", "Autoavaliação"], r: 2 },
-{ c: "Português", q: "Qual a forma correta: 'A gente vamos' ou 'A gente vai'?", o: ["A gente vamos", "A gente vai", "Agente vai", "Agente vamos"], r: 1 },
-{ c: "Matemática", q: "Se 4 pessoas fazem um trabalho em 10 dias, 8 pessoas (com mesma produtividade) farão em:", o: ["20 dias", "5 dias", "8 dias", "15 dias"], r: 1 },
-{ c: "Direito ADM", q: "O servidor que recebe propina para agilizar um processo comete ato de improbidade que gera:", o: ["Enriquecimento ilícito", "Prejuízo ao erário apenas", "Atentado contra princípios apenas", "Nenhuma punição"], r: 0 },
-{ c: "Informática", q: "Qual a função do atalho 'Ctrl + C' no Windows?", o: ["Cortar", "Colar", "Copiar", "Cancelar"], r: 2 },
-{ c: "Gestão Pessoas", q: "A técnica de treinamento que ocorre no próprio local de trabalho é chamada de:", o: ["On-the-job", "Off-the-job", "Simulação", "E-learning"], r: 0 },
-{ c: "Motivação", q: "A teoria que afirma que as pessoas são motivadas quando acreditam que seu esforço levará a um prêmio desejado é a:", o: ["Teoria da Equidade", "Teoria da Expectância (Vroom)", "Teoria X e Y", "Teoria do Reforço"], r: 1 },
-{ c: "Gestão", q: "Na Teoria X e Y de McGregor, o gestor que acredita que as pessoas são preguiçosas por natureza segue a:", o: ["Teoria X", "Teoria Y", "Teoria Z", "Teoria W"], r: 0 },
-{ c: "Português", q: "Qual o antônimo de 'Benevolente'?", o: ["Bondoso", "Malévolo", "Gentil", "Calmo"], r: 1 },
-{ c: "Matemática", q: "Qual o valor de 10% de 10% de 100?", o: ["10", "1", "0.1", "5"], r: 1 },
-{ c: "Lei 8.112", q: "A licença-prêmio por assiduidade foi substituída pela licença para:", o: ["Tratamento de saúde", "Interesses particulares", "Capacitação", "Mandato classista"], r: 2 },
-{ c: "Informática", q: "O que significa a sigla WWW?", o: ["World Wide Web", "World Wired Web", "Web World Wide", "Wide World Web"], r: 0 },
-{ c: "Direito ADM", q: "O ato de dar posse a um servidor é um ato:", o: ["Vinculado", "Discricionário", "Inexistente", "Simples"], r: 0 },
-{ c: "Gestão Pessoas", q: "O 'Turnover' de uma empresa refere-se à:", o: ["Produtividade", "Rotatividade de pessoal", "Lucratividade", "Vendas"], r: 1 },
-{ c: "Português", q: "Na frase 'Ele comprou um carro novo', qual o adjetivo?", o: ["Ele", "Comprou", "Carro", "Novo"], r: 3 }
-        { c: "Comunicação", q: "A barreira na comunicação que ocorre devido ao uso de termos técnicos ou gírias que o receptor não entende é uma barreira:", o: ["Física", "Semântica", "Psicológica", "Mecânica"], r: 1 },
-{ c: "Redação Of.", q: "O documento oficial assinado pelo Presidente da República para sugerir projetos de lei ao Poder Legislativo é a:", o: ["Mensagem", "Ofício", "Exposição de Motivos", "Aviso"], r: 0 },
-{ c: "Matemática", q: "Se a razão entre o número de homens e mulheres em um setor é 2 para 3, e há 12 homens, quantas mulheres há?", o: ["15", "18", "20", "24"], r: 1 },
-{ c: "Lei 8.112", q: "A remoção de ofício do servidor para outra sede dá direito a qual indenização?", o: ["Diárias", "Ajuda de custo", "Auxílio-moradia", "Transporte de móveis apenas"], r: 1 },
-{ c: "Comunicação", q: "O feedback no processo de comunicação serve para:", o: ["Interromper o emissor", "Confirmar que a mensagem foi compreendida", "Criticar o receptor", "Aumentar o ruído"], r: 1 },
-{ c: "Redação Of.", q: "No padrão ofício, qual deve ser a margem esquerda mínima?", o: ["1 cm", "1,5 cm", "3 cm", "2 cm"], r: 2 },
-{ c: "Português", q: "Assinale a alternativa que apresenta um advérbio de intensidade:", o: ["Ali", "Jamais", "Bastante", "Ontem"], r: 2 },
-{ c: "Matemática", q: "Uma herança de R$ 60.000,00 será dividida entre dois irmãos na proporção 2:1. Quanto receberá o que ganhar mais?", o: ["R$ 30.000", "R$ 40.000", "R$ 45.000", "R$ 50.000"], r: 1 },
-{ c: "Informática", q: "O 'Cache' do processador é uma memória que serve para:", o: ["Aumentar o espaço do HD", "Acelerar o acesso a dados frequentes", "Proteger contra vírus", "Conectar o mouse"], r: 1 },
-{ c: "Direito ADM", q: "A anulação de um ato administrativo produz efeitos:", o: ["Ex Nunc (não retroage)", "Ex Tunc (retroage)", "Apenas para o futuro", "Apenas para terceiros"], r: 1 },
-{ c: "Redação Of.", q: "Qual o tratamento correto para o Reitor do IFCE em um envelope (endereçamento)?", o: ["A Sua Excelência o Senhor", "Ao Magnífico Reitor", "Ao Ilustríssimo Senhor", "Ao Excelentíssimo Senhor Reitor"], r: 1 },
-{ c: "Lei 8.112", q: "O servidor que completar 75 anos de idade será aposentado:", o: ["Voluntariamente", "Compulsoriamente", "Por invalidez", "Com proventos proporcionais apenas"], r: 1 },
-{ c: "Matemática", q: "Em um mapa, 1 cm representa 10 km. Qual a distância real entre duas cidades separadas por 5 cm?", o: ["25 km", "50 km", "100 km", "5 km"], r: 1 },
-{ c: "Português", q: "A palavra 'Cachorro' possui quantos fonemas?", o: ["8", "7", "6", "5"], r: 1 },
-{ c: "Informática", q: "O atalho 'Ctrl + Z' no Windows tem a função de:", o: ["Refazer", "Desfazer", "Cortar", "Fechar"], r: 1 },
-{ c: "Comunicação", q: "A comunicação não verbal inclui:", o: ["Apenas a fala", "Gestos, expressões faciais e postura", "E-mails oficiais", "Relatórios técnicos"], r: 1 },
-{ c: "Lei 11.091", q: "A 'Progressão por Capacitação Profissional' do TAE ocorre mediante:", o: ["Tempo de serviço apenas", "Avaliação de desempenho apenas", "Apresentação de certificados de cursos", "Indicação da chefia"], r: 2 },
-{ c: "Português", q: "Qual a classe gramatical da palavra 'Branco' em 'O branco da neve'?", o: ["Adjetivo", "Substantivo", "Verbo", "Advérbio"], r: 1 },
-{ c: "Matemática", q: "Qual a negação de 'Algum técnico é preguiçoso'?", o: ["Todo técnico é preguiçoso", "Nenhum técnico é preguiçoso", "Algum técnico não é preguiçoso", "Muitos técnicos são preguiçosos"], r: 1 },
-{ c: "Redação Of.", q: "O princípio da CONCISÃO na redação oficial significa:", o: ["Escrever muito", "Transmitir o máximo de informações com o mínimo de palavras", "Usar palavras difíceis", "Ser impessoal"], r: 1 }
-        { c: "Dir. Const.", q: "Os princípios fundamentais da Administração Pública Direta e Indireta estão no Art. 37 da CF/88 e formam a sigla:", o: ["LIMPE", "GENTE", "FORÇA", "LEGAL"], r: 0 },
-{ c: "Dir. Const.", q: "Qual princípio obriga a administração a agir conforme a lei?", o: ["Moralidade", "Eficiência", "Legalidade", "Publicidade"], r: 2 },
-{ c: "Matemática", q: "Qual a negação de 'Se eu estudo, então passo'?", o: ["Se eu não estudo, não passo", "Eu estudo e não passo", "Eu não estudo e passo", "Estudo ou passo"], r: 1 },
-{ c: "Dir. Const.", q: "O direito de greve do servidor público civil será exercido nos termos definidos em:", o: ["Decreto", "Lei Complementar", "Lei Específica", "Portaria"], r: 2 },
-{ c: "Português", q: "Qual o plural da palavra composta 'Couve-flor'?", o: ["Couves-flor", "Couves-flores", "Couve-flores", "Couves-florais"], r: 1 },
-{ c: "Dir. Const.", q: "A Constituição Federal garante ao trabalhador o décimo terceiro salário com base na:", o: ["Remuneração integral", "Apenas no salário base", "Média dos últimos 5 anos", "Decisão do chefe"], r: 0 },
-{ c: "ADM Pública", q: "A criação de uma Autarquia (como o IFCE) deve ser feita por meio de:", o: ["Decreto", "Lei Específica", "Portaria", "Contrato"], r: 1 },
-{ c: "Informática", q: "No Windows, qual atalho bloqueia o computador rapidamente?", o: ["Win + L", "Win + D", "Ctrl + Alt + Del", "Alt + F4"], r: 0 },
-{ c: "Matemática", q: "Em uma urna com 5 bolas azuis e 5 vermelhas, qual a probabilidade de tirar uma azul?", o: ["25%", "50%", "75%", "100%"], r: 1 },
-{ c: "Dir. Const.", q: "A investidura em cargo ou emprego público depende de aprovação prévia em concurso público de:", o: ["Provas ou Provas e Títulos", "Apenas Títulos", "Currículo e Entrevista", "Apenas Provas Práticas"], r: 0 },
-{ c: "Português", q: "Qual palavra é um paroxítona?", o: ["Café", "Lápis", "Árvore", "Cajá"], r: 1 },
-{ c: "Dir. Const.", q: "O prazo de validade do concurso público será de até:", o: ["1 ano, prorrogável uma vez", "2 anos, prorrogável uma vez por igual período", "3 anos, sem prorrogação", "4 anos"], r: 1 },
-{ c: "Informática", q: "O protocolo que garante a segurança em sites (cadeado verde) é o:", o: ["HTTP", "FTP", "HTTPS", "SMTP"], r: 2 },
-{ c: "Dir. Const.", q: "A lei reservará percentual dos cargos e empregos públicos para as pessoas portadoras de:", o: ["Nível superior", "Deficiência", "Baixa renda", "Idade avançada"], r: 1 },
-{ c: "Matemática", q: "Quanto é 3 + 3 x 3 - 3?", o: ["15", "9", "6", "12"], r: 1 },
-{ c: "Português", q: "Qual o sinônimo de 'Indigente'?", o: ["Rico", "Miserável", "Sábio", "Inteligente"], r: 1 },
-{ c: "Dir. Const.", q: "São poderes da União, independentes e harmônicos entre si:", o: ["Legislativo, Executivo e Judiciário", "Político, Militar e Social", "Federal, Estadual e Municipal", "Público, Privado e Misto"], r: 0 },
-{ c: "Informática", q: "Qual dessas opções é um 'Navegador' (Browser)?", o: ["Excel", "Windows", "Firefox", "Word"], r: 2 },
-{ c: "ADM Pública", q: "O princípio que exige que o servidor não use sua função para interesse próprio é a:", o: ["Impessoalidade", "Publicidade", "Eficiência", "Legalidade"], r: 0 },
-{ c: "Dir. Const.", q: "A jornada de trabalho normal não pode ser superior a:", o: ["44 horas semanais", "40 horas semanais", "30 horas semanais", "48 horas semanais"], r: 0 }
-        { c: "Ética", q: "De acordo com o Dec. 1.171/94, a cortesia, a urbanidade e a disponibilidade são deveres do servidor e devem ser entendidas como:", o: ["Favor ao cidadão", "Acréscimo ao seu próprio bem-estar", "Obrigação sem valor moral", "Apenas para chefes"], r: 1 },
-{ c: "Atendimento", q: "Qual o primeiro passo para um atendimento de excelência?", o: ["Falar rápido", "Ouvir com atenção (Escuta ativa)", "Dar ordens", "Ignorar reclamações"], r: 1 },
-{ c: "Ética", q: "A pena de CENSURA, aplicada pela Comissão de Ética, deve ter seu parecer assinado por quantos membros?", o: ["Pelo menos um", "Pelo menos dois", "Todos os três membros", "Nenhum, é automática"], r: 1 },
-{ c: "Atendimento", q: "O termo 'Empatia' no atendimento ao público do IFCE significa:", o: ["Sentir pena do usuário", "Colocar-se no lugar do outro para entender sua necessidade", "Fazer o que o usuário quer mesmo se for ilegal", "Ser indiferente"], r: 1 },
-{ c: "Ética", q: "Para o servidor público, o trabalho desenvolvido perante a comunidade deve ser visto como:", o: ["Meio de ganhar dinheiro", "Exercício de cidadania e virtude", "Apenas obrigação contratual", "Perda de tempo"], r: 1 },
-{ c: "Matemática", q: "Em uma divisão, se o divisor é 5 e o quociente é 12, com resto zero, qual o dividendo?", o: ["50", "60", "70", "12"], r: 1 },
-{ c: "Português", q: "Qual o antônimo de 'Altruísmo'?", o: ["Generosidade", "Egoísmo", "Filantropia", "Solidariedade"], r: 1 },
-{ c: "Ética", q: "A omissão da verdade pelo servidor é permitida quando:", o: ["O chefe mandar", "For para ajudar um colega", "Nunca é permitida, é vedada", "Se for para evitar burocracia"], r: 2 },
-{ c: "Atendimento", q: "A comunicação interna feita através de computadores em uma mesma rede organizacional é a:", o: ["Internet", "Intranet", "Extranet", "Ethernet"], r: 1 },
-{ c: "Ética", q: "Toda pessoa tem direito à verdade. O servidor não pode omiti-la, ainda que contrária aos interesses da:", o: ["Sua família", "Própria Administração Pública", "Sua religião", "Sua segurança pessoal"], r: 1 },
-{ c: "Português", q: "Assinale a palavra que não sofreu alteração com o Novo Acordo Ortográfico:", o: ["Idéia", "Vôo", "Pé", "Linguiça"], r: 2 },
-{ c: "Informática", q: "O conjunto de programas que gerencia os recursos do computador é o:", o: ["Hardware", "Sistema Operacional", "Processador", "Navegador"], r: 1 },
-{ c: "Ética", q: "A publicidade de qualquer ato administrativo é requisito de eficácia e moralidade, EXCETO em casos de:", o: ["Vontade do Reitor", "Segurança Nacional e investigações sigilosas", "Falta de verba para publicar", "Se o ato for simples"], r: 1 },
-{ c: "Matemática", q: "Qual o valor de 2 elevado a 5 (2^5)?", o: ["10", "16", "32", "64"], r: 2 },
-{ c: "Atendimento", q: "O comportamento de um servidor que trata todos com igualdade, sem preconceitos, atende ao princípio da:", o: ["Impessoalidade", "Subjetividade", "Parcialidade", "Hierarquia"], r: 0 },
-{ c: "Lei 8.112", q: "A responsabilidade administrativa do servidor será afastada no caso de absolvição criminal que negue:", o: ["A existência do fato ou sua autoria", "Apenas o dolo", "A sanidade mental", "A necessidade de multa"], r: 0 },
-{ c: "Português", q: "A frase 'Falar é prata, calar é ouro' apresenta qual figura de linguagem?", o: ["Antítese", "Metáfora", "Pleonasmo", "Hipérbole"], r: 0 },
-{ c: "Ética", q: "O servidor deve ter consciência de que seu patrimônio será fiscalizado. A evolução patrimonial incompatível com a renda deve ser:", o: ["Escondida", "Justificada/Informada", "Investida em imóveis", "Ignorada"], r: 1 },
-{ c: "Matemática", q: "Quanto é 0,5 x 0,5?", o: ["1", "0,25", "0,50", "2,5"], r: 1 },
-{ c: "Ética", q: "É vedado ao servidor público o uso de artifícios para procrastinar (atrasar) o atendimento. Isso atenta contra:", o: ["Apenas o tempo", "A moralidade e a dignidade do cargo", "A economia do país", "A paciência do chefe"], r: 1 }
-        { c: "Arquivologia", q: "A teoria que divide a vida dos documentos em Corrente, Intermediário e Permanente é conhecida como:", o: ["Teoria das Três Idades", "Ciclo de Vida Útil", "Método Geográfico", "Gestão de Estoque"], r: 0 },
-{ c: "Arquivologia", q: "Documentos consultados com frequência e que estão em tramitação pertencem ao arquivo:", o: ["Permanente", "Corrente", "Intermediário", "Morto"], r: 1 },
-{ c: "Arquivologia", q: "O arquivo que guarda documentos que perderam o valor administrativo, mas ganharam valor histórico, é o:", o: ["Arquivo Setorial", "Arquivo Corrente", "Arquivo Permanente", "Arquivo Intermediário"], r: 2 },
-{ c: "Arquivologia", q: "A transferência consiste na passagem de documentos do arquivo:", o: ["Corrente para o Intermediário", "Intermediário para o Permanente", "Permanente para o Corrente", "Setorial para o Histórico"], r: 0 },
-{ c: "Arquivologia", q: "O recolhimento é a passagem de documentos para o arquivo:", o: ["Setorial", "Intermediário", "Permanente", "Corrente"], r: 2 },
-{ c: "Matemática", q: "Qual a negação de 'Se estudo, então sou aprovado'?", o: ["Estudo e não sou aprovado", "Não estudo e sou aprovado", "Se não estudo, não sou aprovado", "Estudo ou sou aprovado"], r: 0 },
-{ c: "Português", q: "Qual a função do 'que' em: 'Desejo que você passe'?", o: ["Pronome Relativo", "Conjunção Integrante", "Preposição", "Advébio"], r: 1 },
-{ c: "Arquivologia", q: "O método de arquivamento que utiliza cores para facilitar a busca e evitar erros é o:", o: ["Variadex", "Alfabético", "Geográfico", "Ideográfico"], r: 0 },
-{ c: "Arquivologia", q: "Documentos de arquivo são produzidos e recebidos por uma instituição no exercício de suas:", o: ["Atividades recreativas", "Funções e atividades", "Vendas externas", "Pesquisas de mercado"], r: 1 },
-{ c: "Informática", q: "O que significa a sigla SSD?", o: ["Solid State Drive", "System Storage Device", "Secure Software Data", "Simple Static Disk"], r: 0 },
-{ c: "Arquivologia", q: "A atividade de separar os documentos destinados à guarda permanente daqueles que serão eliminados chama-se:", o: ["Avaliação", "Indexação", "Protocolo", "Expedição"], r: 0 },
-{ c: "Arquivologia", q: "O local destinado à guarda de documentos de várias unidades administrativas é o arquivo:", o: ["Setorial", "Central ou Geral", "Particular", "Temporário"], r: 1 },
-{ c: "Matemática", q: "Um triângulo que possui dois lados iguais é chamado de:", o: ["Equilátero", "Isósceles", "Escaleno", "Retângulo"], r: 1 },
-{ c: "Português", q: "Assinale a alternativa com erro de ortografia:", o: ["Exceção", "Pretensioso", "Ascensão", "Excessão"], r: 3 },
-{ c: "Arquivologia", q: "A unidade de arquivamento menor em um arquivo é o:", o: ["Documento", "Processo", "Dossiê", "Pasta"], r: 0 },
-{ c: "Arquivologia", q: "O documento que serve para registrar a entrada e saída de papéis em uma instituição é o:", o: ["Protocolo", "Ofício", "Memorando", "Ata"], r: 0 },
-{ c: "Lei 8.112", q: "A licença para tratar de interesses particulares pode ser interrompida a qualquer tempo a pedido do:", o: ["Servidor apenas", "Administração apenas", "Servidor ou da Administração", "Ministro da Educação"], r: 2 },
-{ c: "Informática", q: "Qual o nome da rede de computadores restrita a uma única organização?", o: ["Internet", "Intranet", "Extranet", "Deep Web"], r: 1 },
-{ c: "Matemática", q: "Qual a soma dos ângulos internos de um triângulo?", o: ["90°", "180°", "360°", "270°"], r: 1 },
-{ c: "Arquivologia", q: "O arquivo que recebe documentos que aguardam prazos de prescrição por terem uso pouco frequente é o:", o: ["Arquivo de Primeira Idade", "Arquivo de Segunda Idade (Intermediário)", "Arquivo de Terceira Idade", "Arquivo Morto"], r: 1 }
-        { c: "Materiais", q: "O estoque que serve para cobrir incertezas na demanda ou atrasos no fornecimento é o:", o: ["Estoque de Segurança", "Estoque Médio", "Estoque Máximo", "Ponto de Pedido"], r: 0 },
-{ c: "Materiais", q: "A classificação de materiais que agrupa itens pela importância de valor (Curva ABC) foca nos itens 'A' porque:", o: ["São os mais baratos", "Representam a maior parte do valor investido", "São os mais pesados", "São comprados em maior quantidade"], r: 1 },
-{ c: "Materiais", q: "O método de avaliação de estoque PEPS (Primeiro que Entra, Primeiro que Sai) também é conhecido como:", o: ["UEPS", "FIFO", "LIFO", "Custo Médio"], r: 1 },
-{ c: "Materiais", q: "O material que, ao ser utilizado, perde suas características ou tem duração limitada a dois anos é o:", o: ["Material Permanente", "Material de Consumo", "Material Imobilizado", "Material Patrimonial"], r: 1 },
-{ c: "Materiais", q: "A técnica de contagem física dos itens em estoque para conferência com o sistema chama-se:", o: ["Inventário", "Licitação", "Empenho", "Liquidação"], r: 0 },
-{ c: "Matemática", q: "Qual a área de um quadrado cujo lado mede 8 metros?", o: ["16 m²", "32 m²", "64 m²", "80 m²"], r: 2 },
-{ c: "Português", q: "Assinale a alternativa que apresenta erro de regência verbal:", o: ["Assisti ao filme", "Aspiro ao cargo", "Esqueci o livro", "Obedeça o chefe"], r: 3 },
-{ c: "Materiais", q: "O nível de estoque em que um novo pedido de compra deve ser feito para evitar a falta de material é o:", o: ["Estoque Crítico", "Ponto de Pedido", "Lote Econômico", "Giro de Estoque"], r: 1 },
-{ c: "Materiais", q: "Bens como mesas, computadores e veículos, que duram mais de dois anos, são classificados como:", o: ["Material de Consumo", "Material Permanente", "Material Perecível", "Material de Expediente"], r: 1 },
-{ c: "Informática", q: "Qual atalho no Windows abre a janela de 'Executar'?", o: ["Win + R", "Win + E", "Win + L", "Win + X"], r: 0 },
-{ c: "Materiais", q: "Na classificação XYZ, os materiais 'Z' são aqueles:", o: ["Sem importância", "Cujos estoques não podem faltar (vitais)", "De fácil substituição", "Muito baratos"], r: 1 },
-{ c: "Materiais", q: "O documento que formaliza a entrega de materiais pelo fornecedor no almoxarifado é a:", o: ["Nota Fiscal", "Guia de Remessa", "Requisição de Material", "Ordem de Serviço"], r: 0 },
-{ c: "Matemática", q: "Quanto é 15% de 300?", o: ["30", "45", "50", "60"], r: 1 },
-{ c: "Português", q: "Na frase 'Eu lhe dei o livro', o termo 'lhe' exerce a função de:", o: ["Objeto Direto", "Objeto Indireto", "Complemento Nominal", "Adjunto Adnominal"], r: 1 },
-{ c: "Materiais", q: "A saída de um bem permanente do patrimônio do IFCE (por estar quebrado ou obsoleto) chama-se:", o: ["Alienação/Baixa", "Licitação", "Transferência", "Cessão"], r: 0 },
-{ c: "Materiais", q: "O espaço físico destinado à guarda e conservação de materiais de consumo é o:", o: ["Patrimônio", "Almoxarifado", "Protocolo", "Arquivo"], r: 1 },
-{ c: "Lei 8.112", q: "A penalidade de suspensão poderá ser aplicada em casos de reincidência das faltas punidas com:", o: ["Demissão", "Advertência", "Multa", "Censura"], r: 1 },
-{ c: "Informática", q: "O que é o 'Defragmentador de Disco'?", o: ["Um vírus", "Um utilitário para organizar arquivos e ganhar desempenho", "Um programa de chat", "Um editor de fotos"], r: 1 },
-{ c: "Matemática", q: "Se x + 25 = 100, qual o valor de x?", o: ["75", "50", "125", "85"], r: 0 },
-{ c: "Materiais", q: "O indicador que mostra quantas vezes o estoque foi renovado em um período é o:", o: ["Giro de Estoque", "Ponto de Equilíbrio", "Tempo de Ressuprimento", "Nível de Serviço"], r: 0 }
-        { c: "Direito ADM", q: "O poder que permite à Administração Pública restringir direitos individuais em favor do interesse público (como multas e fiscalizações) é o:", o: ["Poder Hierárquico", "Poder Disciplinar", "Poder de Polícia", "Poder Regulamentar"], r: 2 },
-{ c: "Direito ADM", q: "A capacidade de a Administração organizar seus órgãos e distribuir funções entre subordinados decorre do:", o: ["Poder Hierárquico", "Poder de Polícia", "Poder Judiciário", "Poder Legislativo"], r: 0 },
-{ c: "Direito ADM", q: "São elementos (requisitos) do ato administrativo: Competência, Finalidade, Forma, Motivo e:", o: ["Objeto", "Vontade", "Sucesso", "Prazo"], r: 0 },
-{ c: "Direito ADM", q: "Atos administrativos que a lei define todos os passos, sem margem de escolha para o administrador, são atos:", o: ["Discricionários", "Vinculados", "Nulos", "Inexistentes"], r: 1 },
-{ c: "Direito ADM", q: "O atributo do ato administrativo que permite a sua execução imediata pela própria Administração, sem ordem judicial, é a:", o: ["Imperatividade", "Presunção de Legitimidade", "Autoexecutoriedade", "Tipicidade"], r: 2 },
-{ c: "Matemática", q: "Se um concurso tem 40 questões e você precisa acertar 60% para passar, quantas questões deve acertar?", o: ["20", "24", "26", "30"], r: 1 },
-{ c: "Português", q: "A frase 'Onde você mora?' utiliza o pronome interrogativo para indicar:", o: ["Tempo", "Lugar", "Modo", "Causa"], r: 1 },
-{ c: "Direito ADM", q: "A extinção de um ato administrativo legal e perfeito, mas que se tornou inconveniente ou inoportuno, chama-se:", o: ["Anulação", "Revogação", "Cassação", "Caducidade"], r: 1 },
-{ c: "Direito ADM", q: "O vício de finalidade (quando o agente age para fins diversos do interesse público) configura:", o: ["Excesso de Poder", "Desvio de Poder", "Abuso de Autoridade apenas", "Ato Vinculado"], r: 1 },
-{ c: "Informática", q: "Qual a principal diferença entre o HTTP e o HTTPS?", o: ["O HTTPS é mais lento", "O HTTPS possui uma camada de criptografia (segurança)", "O HTTP é apenas para imagens", "Não há diferença"], r: 1 },
-{ c: "Direito ADM", q: "Atos administrativos que impõem obrigações aos administrados, independentemente da sua concordância, possuem o atributo da:", o: ["Autoexecutoriedade", "Imperatividade", "Moralidade", "Publicidade"], r: 1 },
-{ c: "Direito ADM", q: "O poder que a Administração possui de editar normas gerais para fiel execução da lei é o:", o: ["Poder Regulamentar", "Poder de Polícia", "Poder Disciplinar", "Poder Hierárquico"], r: 0 },
-{ c: "Matemática", q: "Qual o próximo número da sequência: 1, 3, 9, 27, ...?", o: ["30", "54", "81", "45"], r: 2 },
-{ c: "Português", q: "Qual o coletivo de 'Atores'?", o: ["Elenco", "Bando", "Multidão", "Constelação"], r: 0 },
-{ c: "Direito ADM", q: "A anulação de um ato administrativo deve ser feita quando ele apresenta vício de:", o: ["Conveniência", "Oportunidade", "Legalidade", "Mérito"], r: 2 },
-{ c: "Direito ADM", q: "Um ato administrativo praticado por um agente que não tem competência legal para tal é um ato com vício de:", o: ["Finalidade", "Sujeito (Competência)", "Motivo", "Objeto"], r: 1 },
-{ c: "Lei 8.112", q: "A redistribuição é o deslocamento de:", o: ["Servidor", "Cargo", "Sede do IFCE", "Dinheiro"], r: 1 },
-{ c: "Informática", q: "Qual destes é um periférico de ENTRADA e SAÍDA ao mesmo tempo?", o: ["Monitor comum", "Impressora multifuncional", "Teclado", "Mouse"], r: 1 },
-{ c: "Matemática", q: "Quanto é a raiz cúbica de 27?", o: ["3", "9", "6", "2"], r: 0 },
-{ c: "Direito ADM", q: "O desfazimento de um ato administrativo que retroage ao início (Ex Tunc) é a:", o: ["Revogação", "Anulação", "Convalidação", "Ratificação"], r: 1 }
-        { c: "RLM", q: "Qual a negação da proposição 'Todo assistente é eficiente'?", o: ["Nenhum assistente é eficiente", "Pelo menos um assistente não é eficiente", "Todos os assistentes são ineficientes", "Algum assistente é eficiente"], r: 1 },
-{ c: "RLM", q: "Se 'P' é verdadeiro e 'Q' é falso, qual o valor lógico de 'P e Q'?", o: ["Verdadeiro", "Falso", "Inconclusivo", "Nulo"], r: 1 },
-{ c: "Matemática", q: "Em um lançamento de um dado comum, qual a probabilidade de sair um número par?", o: ["1/6", "1/3", "1/2", "2/3"], r: 2 },
-{ c: "Informática", q: "No Excel, qual função é usada para encontrar o maior valor em um intervalo?", o: ["=MAIOR()", "=MÁXIMO()", "=SOMA()", "=CONT.VALORES()"], r: 1 },
-{ c: "RLM", q: "Se chove, então não vou ao cinema. Ora, fui ao cinema. Logo:", o: ["Choveu", "Não choveu", "O cinema estava fechado", "Não sei se choveu"], r: 1 },
-{ c: "Matemática", q: "Qual o valor de x na proporção 2/5 = x/20?", o: ["4", "8", "10", "12"], r: 1 },
-{ c: "Português", q: "Na frase 'Comprei frutas e legumes', a conjunção 'e' é:", o: ["Adversativa", "Aditiva", "Conclusiva", "Explicativa"], r: 1 },
-{ c: "Informática", q: "No Google Sheets/Excel, o que faz a função =CONT.SE(A1:A10; '>5')?", o: ["Soma os valores maiores que 5", "Conta quantas células têm valores maiores que 5", "Multiplica os valores por 5", "Apaga valores menores que 5"], r: 1 },
-{ c: "RLM", q: "A proposição 'p v ~p' (p ou não p) é classificada como uma:", o: ["Contradição", "Contingência", "Tautologia", "Falácia"], r: 2 },
-{ c: "Matemática", q: "A soma de dois números é 15 e a diferença é 3. Quais são esses números?", o: ["10 e 5", "9 e 6", "11 e 4", "8 e 7"], r: 1 },
-{ c: "Informática", q: "Para fixar uma referência de célula no Excel (ex: impedir que A1 mude ao arrastar), usa-se o símbolo:", o: ["%", "#", "$", "&"], r: 2 },
-{ c: "RLM", q: "Qual o conectivo lógico representado pelo símbolo '→'?", o: ["Conjunção (e)", "Disjunção (ou)", "Condicional (se... então)", "Bicondicional (se e somente se)"], r: 2 },
-{ c: "Matemática", q: "Um artigo custava R$ 80,00 e passou a custar R$ 100,00. Qual foi o aumento percentual?", o: ["20%", "25%", "30%", "15%"], r: 1 },
-{ c: "Português", q: "Assinale a alternativa onde o 'porquê' está substantivado:", o: ["Por que você saiu?", "Não sei o porquê de tanta confusão", "Estudo porque quero passar", "Saí por quê?"], r: 1 },
-{ c: "RLM", q: "Se 'Se P, então Q' é verdadeiro, e 'Q' é falso, o que podemos afirmar sobre 'P'?", o: ["P é verdadeiro", "P é falso", "P pode ser qualquer coisa", "P é nulo"], r: 1 },
-{ c: "Informática", q: "Qual o nome da principal rede social profissional usada para networking e vagas?", o: ["Instagram", "LinkedIn", "Facebook", "Twitter"], r: 1 },
-{ c: "Matemática", q: "Qual a área de um círculo de raio 3? (Considere pi = 3)", o: ["9", "18", "27", "12"], r: 2 },
-{ c: "Português", q: "Qual a classe gramatical de 'muito' em 'Ele corre muito'?", o: ["Adjetivo", "Advérbio de intensidade", "Substantivo", "Preposição"], r: 1 },
-{ c: "Lei 8.112", q: "A remoção a pedido para outra localidade, independente do interesse da administração, para acompanhar cônjuge removido de ofício é um:", o: ["Poder discricionário", "Direito subjetivo do servidor", "Ato nulo", "Favor do Reitor"], r: 1 },
-{ c: "RLM", q: "Em uma sequência lógica: 1, 1, 2, 3, 5, 8, ... qual o próximo número?", o: ["10", "12", "13", "15"], r: 2 }
-        { c: "Licitação", q: "De acordo com a Lei 14.133/21, a modalidade de licitação para contratação de bens e serviços comuns é o:", o: ["Leilão", "Pregão", "Concurso", "Diálogo Competitivo"], r: 1 },
-{ c: "Licitação", q: "A modalidade de licitação usada para a venda de bens móveis inservíveis ou produtos legalmente apreendidos é o:", o: ["Pregão", "Concorrência", "Leilão", "Concurso"], r: 2 },
-{ c: "Licitação", q: "Qual o princípio que obriga a administração a escolher a proposta que gere o melhor resultado econômico?", o: ["Segregação de funções", "Eficiência", "Seleção da proposta mais vantajosa", "Julgamento objetivo"], r: 2 },
-{ c: "Licitação", q: "A contratação de profissional de qualquer setor artístico, diretamente ou por meio de empresário exclusivo, desde que consagrado pela crítica, é caso de:", o: ["Licitação Dispensada", "Licitação Dispensável", "Inexigibilidade de Licitação", "Pregão Presencial"], r: 2 },
-{ c: "Licitação", q: "Na Nova Lei de Licitações, a modalidade 'Convite' e 'Tomada de Preços':", o: ["Foram mantidas", "Foram extintas", "Tornaram-se obrigatórias", "Mudaram de nome"], r: 1 },
-{ c: "Matemática", q: "Se 3/5 de um projeto foram concluídos em 9 dias, o projeto todo levará quanto tempo?", o: ["12 dias", "15 dias", "18 dias", "20 dias"], r: 1 },
-{ c: "Português", q: "Qual a função sintática de 'ao vencedor' em 'Deram o prêmio ao vencedor'?", o: ["Objeto Direto", "Objeto Indireto", "Complemento Nominal", "Agente da Passiva"], r: 1 },
-{ c: "Licitação", q: "A fase de lances no pregão é obrigatoriamente:", o: ["Presencial", "Eletrônica (preferencialmente)", "Por carta fechada apenas", "Por telefone"], r: 1 },
-{ c: "Licitação", q: "O prazo mínimo para apresentação de propostas no pregão para aquisição de bens é de:", o: ["5 dias úteis", "8 dias úteis", "10 dias úteis", "15 dias úteis"], r: 1 },
-{ c: "Informática", q: "Qual o nome da prática de manter cópias de arquivos em locais diferentes para evitar perda de dados?", o: ["Download", "Upload", "Backup", "Cache"], r: 2 },
-{ c: "Licitação", q: "O critério de julgamento que busca o menor impacto ambiental e maior eficiência energética é o de:", o: ["Menor preço", "Melhor técnica", "Maior retorno econômico", "Maior desconto"], r: 2 },
-{ c: "Licitação", q: "A modalidade voltada para inovação tecnológica ou técnica, onde a administração conversa com licitantes antes da proposta, é o:", o: ["Diálogo Competitivo", "Concurso", "Pregão", "Leilão"], r: 0 },
-{ c: "Matemática", q: "Qual o valor de 20% de 20% de 500?", o: ["20", "40", "100", "25"], r: 0 },
-{ c: "Português", q: "O uso da crase está INCORRETO em:", o: ["Fui à cidade", "Entreguei à ela", "Chegamos às dez horas", "Refiro-me àquela situação"], r: 1 },
-{ c: "Licitação", q: "Quando não há viabilidade de competição (ex: fornecedor único), a licitação é:", o: ["Dispensável", "Inexigível", "Obrigatória", "Anulada"], r: 1 },
-{ c: "Informática", q: "No Windows, qual tecla de função é usada para renomear um arquivo selecionado?", o: ["F1", "F2", "F3", "F5"], r: 1 },
-{ c: "Licitação", q: "O princípio que impede que a mesma pessoa atue em fases conflitantes da licitação (ex: quem pede o material não pode ser quem aprova a compra) é a:", o: ["Segregação de Funções", "Publicidade", "Legalidade", "Impessoalidade"], r: 0 },
-{ c: "Matemática", q: "A negação de 'P -> Q' (Se P, então Q) é equivalente a:", o: ["P ^ ~Q (P e não Q)", "~P v Q (Não P ou Q)", "Q -> P", "~P ^ ~Q"], r: 0 },
-{ c: "Português", q: "Qual a classe gramatical da palavra 'Vixe'?", o: ["Conjunção", "Interjeição", "Advérbio", "Preposição"], r: 1 },
-{ c: "Licitação", q: "O Portal Nacional de Contratações Públicas (PNCP) serve para:", o: ["Centralizar a divulgação de licitações", "Apenas para o exército", "Substituir o Diário Oficial apenas", "Vender editais"], r: 0 }
-        { c: "Direito ADM", q: "A responsabilidade civil do Estado no Brasil, conforme a CF/88, baseia-se na Teoria do Risco Administrativo, que é:", o: ["Subjetiva (precisa provar dolo/culpa)", "Objetiva (basta provar o dano e o nexo causal)", "Inexistente em casos de acidente", "Apenas para empresas privadas"], r: 1 },
-{ c: "Serviço Público", q: "O princípio que estabelece que o serviço público não deve ser interrompido é o da:", o: ["Continuidade", "Modicidade das Tarifas", "Generalidade", "Cortesia"], r: 0 },
-{ c: "Direito ADM", q: "Se um motorista do IFCE bate o carro oficial em um veículo particular, o cidadão deve processar:", o: ["O motorista diretamente", "O IFCE (Estado)", "O Reitor", "Ninguém, foi acidente"], r: 1 },
-{ c: "Serviço Público", q: "Serviços prestados diretamente à população e que podem ser mensurados individualmente (como luz e água) são chamados de:", o: ["Uti Universi (Gerais)", "Uti Singuli (Individuais)", "Indivisíveis", "Gratuitos"], r: 1 },
-{ c: "Direito ADM", q: "Para que o Estado seja responsabilizado, é necessário que haja um nexo causal entre:", o: ["A intenção e o erro", "A conduta estatal e o dano sofrido", "O salário e a função", "O local e a hora"], r: 1 },
-{ c: "Matemática", q: "Qual a negação de 'Se P, então Q'?", o: ["P e não Q", "Não P ou Q", "Não P e não Q", "Se Q, então P"], r: 0 },
-{ c: "Português", q: "Qual a forma correta do plural de 'Cidadão'?", o: ["Cidadões", "Cidadães", "Cidadãos", "Cidadonos"], r: 2 },
-{ c: "Direito ADM", q: "O Estado pode ser isento de responsabilidade em casos de:", o: ["Culpa exclusiva da vítima ou força maior", "Apenas se o servidor fugir", "Se o valor for muito alto", "Nunca, o Estado sempre paga"], r: 0 },
-{ c: "Serviço Público", q: "O princípio da MODICIDADE significa que o serviço público deve ser prestado a:", o: ["Preços acessíveis à população", "Preços de mercado", "De graça para todos sempre", "Apenas para servidores"], r: 0 },
-{ c: "Informática", q: "Qual a função do comando 'Ipconfig' no prompt de comando (CMD)?", o: ["Desligar o PC", "Mostrar as configurações de rede e endereço IP", "Formatar o HD", "Mudar a senha do Windows"], r: 1 },
-{ c: "Direito ADM", q: "A ação que o Estado move contra o servidor para reaver o dinheiro pago em indenização (em caso de dolo/culpa) é a:", o: ["Ação Direta", "Ação de Regresso", "Ação Penal", "Ação Civil Pública"], r: 1 },
-{ c: "Serviço Público", q: "A delegação da prestação de serviço público a uma empresa privada, mediante licitação, chama-se:", o: ["Concessão ou Permissão", "Privatização total", "Terceirização interna", "Convênio"], r: 0 },
-{ c: "Matemática", q: "Quanto é 5! (Fatorial de 5)?", o: ["25", "100", "120", "150"], r: 2 },
-{ c: "Português", q: "Na frase 'Assisti ao jogo', o verbo assistir é:", o: ["Transitivo Direto", "Transitivo Indireto", "Intransitivo", "De ligação"], r: 1 },
-{ c: "Direito ADM", q: "A responsabilidade do Estado por atos OMISSIVOS (quando ele deveria agir e não agiu) é, em regra:", o: ["Objetiva", "Subjetiva", "Inexistente", "Presumida"], r: 1 },
-{ c: "Informática", q: "Qual o principal objetivo de um sistema de Backup em nuvem?", o: ["Aumentar a velocidade da internet", "Garantir a disponibilidade dos dados em caso de falha física", "Substituir o processador", "Criar sites"], r: 1 },
-{ c: "Serviço Público", q: "O serviço de iluminação pública das ruas é um exemplo de serviço:", o: ["Uti Singuli", "Uti Universi (Geral/Indivisível)", "Privado", "Seletivo"], r: 1 },
-{ c: "Matemática", q: "Qual a média aritmética de 12, 18 e 30?", o: ["15", "20", "25", "18"], r: 1 },
-{ c: "Direito ADM", q: "Danos causados por fenômenos da natureza (raios, enchentes) geram responsabilidade do Estado?", o: ["Sim, sempre", "Não, salvo se houver omissão estatal na prevenção", "Apenas se o Reitor autorizar", "Somente em cidades grandes"], r: 1 },
-{ c: "Português", q: "Qual a classe gramatical de 'embora' em 'Embora estivesse cansado, estudou'?", o: ["Conjunção Concessiva", "Adjetivo", "Preposição", "Interjeição"], r: 0 }
-        { c: "AFO", q: "O ciclo orçamentário inicia-se com a elaboração da proposta e encerra-se com:", o: ["A votação no Congresso", "A execução das despesas", "O controle e a avaliação (julgamento das contas)", "O pagamento dos servidores"], r: 2 },
-{ c: "AFO", q: "Receitas que derivam do patrimônio público, como aluguéis e juros, são classificadas como:", o: ["Receitas Correntes (Patrimoniais)", "Receitas de Capital", "Receitas Tributárias", "Receitas de Transferência"], r: 0 },
-{ c: "AFO", q: "A etapa da despesa pública que consiste na verificação do direito adquirido pelo credor (conferir se o serviço foi feito) é o:", o: ["Empenho", "Liquidação", "Pagamento", "Fixação"], r: 1 },
-{ c: "AFO", q: "O princípio orçamentário que proíbe que a LOA contenha matéria estranha à previsão da receita e à fixação da despesa é o:", o: ["Princípio da Unidade", "Princípio da Exclusividade", "Princípio da Universalidade", "Princípio da Legalidade"], r: 1 },
-{ c: "AFO", q: "Os créditos adicionais destinados a despesas urgentes e imprevistas (como guerra ou calamidade) são os:", o: ["Suplementares", "Especiais", "Extraordinários", "Ordinários"], r: 2 },
-{ c: "Matemática", q: "Um capital de R$ 2.000,00 rendeu R$ 400,00 de juros simples em 10 meses. Qual a taxa mensal?", o: ["1%", "2%", "4%", "5%"], r: 1 },
-{ c: "Português", q: "Qual a função do 'se' em: 'Vende-se esta casa'?", o: ["Índice de indeterminação do sujeito", "Partícula apassivadora", "Conjunção condicional", "Pronome reflexivo"], r: 1 },
-{ c: "AFO", q: "A Lei de Responsabilidade Fiscal (LRF) estabelece limites para despesas com:", o: ["Publicidade apenas", "Pessoal e encargos sociais", "Apenas investimentos", "Viagens internacionais"], r: 1 },
-{ c: "AFO", q: "Despesas com a compra de equipamentos e execução de obras são classificadas como:", o: ["Despesas Correntes", "Despesas de Capital", "Despesas de Custeio", "Transferências Correntes"], r: 1 },
-{ c: "Informática", q: "No Excel, qual símbolo indica o início de uma fórmula?", o: ["+", "#", "=", "@"], r: 2 },
-{ c: "AFO", q: "O 'Empenho' da despesa cria para o Estado uma:", o: ["Dívida imediata", "Obrigação de pagamento pendente de implementação de condição", "Receita extra", "Anulação de contrato"], r: 1 },
-{ c: "AFO", q: "O instrumento que define as metas e prioridades da administração para o ano seguinte é a:", o: ["LOA", "LDO", "PPA", "LRF"], r: 1 },
-{ c: "Matemática", q: "Se a base de um triângulo é 12 e a área é 48, qual a sua altura?", o: ["4", "6", "8", "10"], r: 2 },
-{ c: "Português", q: "Assinale a frase com erro de concordância nominal:", o: ["Ela mesma fez o trabalho", "Seguem anexos os documentos", "É necessário paciência", "As cartas estão meio perdidas"], r: 3 },
-{ c: "AFO", q: "O princípio da UNIDADE orçamentária significa que:", o: ["Deve existir apenas um orçamento para cada ente federado", "O orçamento deve durar um mês", "Todas as despesas devem ser iguais", "Só pode haver uma fonte de receita"], r: 0 },
-{ c: "Informática", q: "Qual comando de teclado é usado para alternar entre janelas abertas no Windows?", o: ["Alt + Tab", "Ctrl + Esc", "Win + D", "Shift + Del"], r: 0 },
-{ c: "AFO", q: "A autorização legislativa para a execução de despesas que não foram computadas no orçamento inicial chama-se:", o: ["Crédito Adicional", "Suplemento de Salário", "Restos a Pagar", "Dotação Inicial"], r: 0 },
-{ c: "Matemática", q: "Qual o valor de log de 100 na base 10?", o: ["1", "2", "10", "100"], r: 1 },
-{ c: "Lei 8.112", q: "O vencimento do cargo efetivo, acrescido das vantagens pecuniárias permanentes estabelecidas em lei, é a:", o: ["Remuneração", "Gratificação", "Indenização", "Provento"], r: 0 },
-{ c: "AFO", q: "Despesas empenhadas mas não pagas até 31 de dezembro são inscritas em:", o: ["Dívida Ativa", "Restos a Pagar", "Receita Antecipada", "Déficit Público"], r: 1 }
-        { c: "Português", q: "Assinale a frase em que o uso da crase é OBRIGATÓRIO:", o: ["Refiro-me a diretora da escola", "Vou a pé para o trabalho", "Entregue o livro a ela", "Saímos a caminhar"], r: 0 },
-{ c: "Redação Of.", q: "O fecho 'Atenciosamente' deve ser utilizado em comunicações dirigidas a:", o: ["Autoridades superiores", "Autoridades de mesma hierarquia ou inferior", "Apenas ao Presidente da República", "Cidadãos estrangeiros"], r: 1 },
-{ c: "Português", q: "Qual a forma correta de concordância em: 'Segue ____ a cópia dos documentos'?", o: ["Anexo", "Anexa", "Anexos", "Anexas"], r: 1 },
-{ c: "Redação Of.", q: "O documento padrão para comunicações entre unidades administrativas de um mesmo órgão (comunicação interna) é o:", o: ["Ofício", "Memorando (agora unificado como Ofício)", "Aviso", "Edital"], r: 1 },
-{ c: "Português", q: "Assinale a alternativa que apresenta ERRO de pontuação:", o: ["Maria, traga o café!", "Ontem, eu fui ao mercado.", "O aluno que estuda, passa.", "Comprei pão, leite e ovos."], r: 2 },
-{ c: "Redação Of.", q: "Qual o pronome de tratamento correto para se dirigir a Juízes de Direito?", o: ["Vossa Excelência", "Vossa Senhoria", "Vossa Magnificência", "Vossa Alteza"], r: 0 },
-{ c: "Português", q: "Na frase 'Faz dois anos que não estudo', o verbo 'fazer' é:", o: ["Pessoal", "Impessoal (não vai para o plural)", "Transitivo Indireto", "Auxiliar de futuro"], r: 1 },
-{ c: "Redação Of.", q: "O princípio da Redação Oficial que exige que o texto seja entendido por todos os cidadãos é a:", o: ["Clareza", "Impropriedade", "Subjetividade", "Pessoalidade"], r: 0 },
-{ c: "Português", q: "Qual o plural de 'Pôr do sol'?", o: ["Pôres do sol", "Pôr do sóis", "Pôres dos sóis", "Pôr dos sóis"], r: 0 },
-{ c: "Redação Of.", q: "O fecho 'Respeitosamente' é usado para autoridades de hierarquia:", o: ["Igual", "Superior", "Inferior", "Qualquer uma"], r: 1 },
-{ c: "Português", q: "Assinale a opção em que a palavra foi acentuada pelo mesmo motivo de 'História':", o: ["Pé", "Relógio", "Baú", "Lâmpada"], r: 1 },
-{ c: "Matemática", q: "Em uma sala com 30 alunos, 40% são homens. Quantas são as mulheres?", o: ["12", "15", "18", "20"], r: 2 },
-{ c: "Informática", q: "No Word, o atalho 'Ctrl + K' serve para:", o: ["Negrito", "Inserir Hiperlink", "Imprimir", "Justificar"], r: 1 },
-{ c: "Português", q: "Qual o sinônimo da palavra 'Precípuo'?", o: ["Secundário", "Essencial/Principal", "Desnecessário", "Antigo"], r: 1 },
-{ c: "Redação Of.", q: "Na identificação do signatário (quem assina), o que NÃO deve constar abaixo da assinatura?", o: ["Nome completo", "Cargo", "Saudação final", "Unidade administrativa"], r: 2 },
-{ c: "Português", q: "Na frase 'Bebi um copo de água', a figura de linguagem presente é:", o: ["Metonímia", "Metáfora", "Hipérbole", "Ironia"], r: 0 },
-{ c: "Matemática", q: "Qual o valor de 2 + 2 x 2 - 2 / 2?", o: ["3", "5", "1", "4"], r: 1 },
-{ c: "Lei 8.112", q: "A penalidade de ADVERTÊNCIA será aplicada por escrito e prescreverá em:", o: ["180 dias", "2 anos", "5 anos", "1 ano"], r: 0 },
-{ c: "Português", q: "Qual a classe gramatical de 'oxalá'?", o: ["Conjunção", "Interjeição", "Advérbio", "Preposição"], r: 1 },
-{ c: "Redação Of.", q: "O correio eletrônico (e-mail) pode ser considerado um documento oficial?", o: ["Sim, desde que tenha valor documental e linguagem adequada", "Nunca", "Apenas para mensagens informais", "Somente se impresso"], r: 0 }
-        { c: "ADM Pública", q: "O modelo de administração que foca no combate à corrupção e ao nepotismo, instituindo a meritocracia e cargos vitalícios, é a:", o: ["Administração Patrimonialista", "Administração Burocrática", "Administração Gerencial", "Nova Gestão Pública"], r: 1 },
-{ c: "ADM Pública", q: "A administração que foca nos resultados, na eficiência e no cidadão como cliente/usuário é a:", o: ["Administração Patrimonialista", "Administração Burocrática", "Administração Gerencial", "Monarquia"], r: 2 },
-{ c: "Ética", q: "A cortesia e a urbanidade são deveres do servidor. O atendimento deve ser prestado:", o: ["Apenas a quem o servidor gosta", "De forma imparcial e igualitária", "Somente em horários de pouco movimento", "Com prioridade para amigos"], r: 1 },
-{ c: "ADM Pública", q: "O termo 'Compliance' no setor público refere-se a:", o: ["Aumentar os impostos", "Estar em conformidade com leis, normas e padrões éticos", "Reduzir o número de servidores", "Automatizar processos"], r: 1 },
-{ c: "Ética", q: "O servidor público não pode jamais desprezar o elemento ético de sua conduta. Assim, ele deve decidir não somente entre o legal e o ilegal, mas principalmente entre o:", o: ["Justo e o injusto", "Rápido e o devagar", "Caro e o barato", "Honesto e o oportuno (Conveniente e Oportuno)"], r: 3 }, // Nota: A questão ética foca no 'Bem Comum' (Honesto/Desonesto)
-{ c: "Matemática", q: "A probabilidade de ganhar em um sorteio com 200 cupons tendo apenas 1 cupom é de:", o: ["1%", "0,5%", "0,1%", "2%"], r: 1 },
-{ c: "Português", q: "Assinale a alternativa que apresenta um substantivo abstrato:", o: ["Cadeira", "Felicidade", "Caneta", "Computador"], r: 1 },
-{ c: "ADM Pública", q: "A 'Eficiência' na administração pública consiste em:", o: ["Gastar todo o orçamento", "Atingir os resultados a qualquer custo", "Obter o melhor resultado com o menor custo possível", "Contratar o maior número de pessoas"], r: 2 },
-{ c: "Ética", q: "O uso do cargo para obter vantagens para si ou para terceiros é uma conduta:", o: ["Permitida se for fora do horário", "Ética se for para a família", "Vedada ao servidor público", "Obrigatória para crescer na carreira"], r: 2 },
-{ c: "Informática", q: "No Windows, o comando 'Alt + F4' serve para:", o: ["Minimizar", "Maximizar", "Fechar a janela ou programa atual", "Reiniciar o computador"], r: 2 },
-{ c: "ADM Pública", q: "A descentralização administrativa ocorre quando o Estado transfere competências para:", o: ["Um único órgão central", "Outras pessoas jurídicas (como as Autarquias)", "Empresas estrangeiras apenas", "O setor militar"], r: 1 },
-{ c: "Matemática", q: "Qual o valor de 20% de 150?", o: ["15", "20", "30", "45"], r: 2 },
-{ c: "Português", q: "Qual a figura de linguagem na frase: 'O Sol abraçou a cidade'?", o: ["Metonímia", "Prosopopeia (Personificação)", "Eufemismo", "Catacrese"], r: 1 },
-{ c: "Ética", q: "A Comissão de Ética do órgão tem como função principal:", o: ["Prender servidores", "Orientar e aconselhar sobre a ética profissional", "Mudar as leis", "Aumentar salários"], r: 1 },
-{ c: "ADM Pública", q: "O 'Governânça' refere-se a:", o: ["Capacidade financeira do Estado", "Maneira como o poder é exercido e os recursos geridos", "Apenas ao voto nas eleições", "Extinção de cargos públicos"], r: 1 },
-{ c: "Informática", q: "O que é um 'Malware'?", o: ["Um hardware potente", "Um software malicioso (vírus, worm, etc)", "Um editor de textos", "Um sistema operacional"], r: 1 },
-{ c: "Matemática", q: "Se x/3 = 12, qual o valor de x?", o: ["4", "9", "15", "36"], r: 3 },
-{ c: "Português", q: "Qual o aumentativo de 'Muro'?", o: ["Murão", "Muralha", "Mureta", "Murinho"], r: 1 },
-{ c: "Lei 8.112", q: "A exoneração de cargo efetivo dar-se-á a pedido do servidor ou:", o: ["Por decisão do juiz apenas", "De ofício (pela administração)", "Por sorteio", "Por idade"], r: 1 },
-{ c: "Ética", q: "A publicidade dos atos administrativos é essencial, pois o servidor deve prestar contas à:", o: ["Sua família", "Sociedade", "Igreja", "Apenas ao Reitor"], r: 1 }
-        { c: "REVISÃO", q: "Qual o prazo máximo de suspensão que pode ser aplicada a um servidor?", o: ["30 dias", "60 dias", "90 dias", "120 dias"], r: 2 },
-{ c: "REVISÃO", q: "O suprimento de fundos é uma exceção à regra de licitação e consiste em:", o: ["Adiantamento de numerário para despesas miúdas", "Pagamento de grandes obras", "Compra de veículos", "Aumento salarial"], r: 0 },
-{ c: "REVISÃO", q: "No Excel, qual função conta apenas as células que contêm números?", o: ["=CONT.VALORES", "=CONT.NÚM", "=SOMASE", "=CONTAR"], r: 1 },
-{ c: "REVISÃO", q: "Assinale a alternativa onde há erro de crase:", o: ["Refiro-me àquele aluno", "Fui à farmácia", "Diga à ele que saí", "Às vezes estudo à noite"], r: 2 },
-{ c: "REVISÃO", q: "O desvio de poder ocorre quando o agente pratica o ato visando fim diverso daquele previsto em lei. Isso afeta o elemento:", o: ["Competência", "Finalidade", "Forma", "Objeto"], r: 1 },
-{ c: "REVISÃO", q: "Qual a negação de 'P ^ Q'?", o: ["~P v ~Q", "~P ^ ~Q", "P v Q", "~P -> Q"], r: 0 },
-{ c: "REVISÃO", q: "A licença para acompanhar cônjuge servidor deslocado de ofício é concedida:", o: ["Por 2 anos", "Por prazo indeterminado e sem remuneração", "Com remuneração integral", "Apenas se houver vaga"], r: 1 },
-{ c: "REVISÃO", q: "O arquivamento geográfico organiza os documentos por:", o: ["Assunto", "Data", "Localidade/Procedência", "Nome de pessoas"], r: 2 },
-{ c: "REVISÃO", q: "Um técnico arquiva 15 processos em 20 min. Quantos arquivará em 1 hora?", o: ["30", "45", "60", "75"], r: 1 },
-{ c: "REVISÃO", q: "O princípio que exige que a Administração Pública atue com transparência é a:", o: ["Legalidade", "Impessoalidade", "Moralidade", "Publicidade"], r: 3 },
-{ c: "REVISÃO", q: "Qual o plural de 'Caráter'?", o: ["Caráteres", "Caracteres", "Caratêres", "Caractéres"], r: 1 },
-{ c: "REVISÃO", q: "O 'Phishing' é um ataque que utiliza:", o: ["Força bruta", "Engenharia social para roubar dados", "Vírus de macro", "Bloqueio de rede"], r: 1 },
-{ c: "REVISÃO", q: "A modalidade de licitação para alienação de bens móveis inservíveis é:", o: ["Leilão", "Pregão", "Concurso", "Diálogo"], r: 0 },
-{ c: "REVISÃO", q: "O ato administrativo que produz efeitos retroativos (desde o início) é:", o: ["Revogação", "Anulação", "Convalidação", "Ratificação"], r: 1 },
-{ c: "REVISÃO", q: "Na Teoria das Três Idades, documentos de valor histórico pertencem à:", o: ["1ª Idade", "2ª Idade", "3ª Idade (Permanente)", "Idade Média"], r: 2 }
-        ];
-let state = JSON.parse(localStorage.getItem('ifce_rpg_vFinal')) || { index: 0, hits: 0, streak: 0, lvl: 1, xp: 0 };
+<script src="questions.js"></script>
+<script>
+let i = 0;
 
-        function updateUI() {
-            document.getElementById('lvl-display').innerText = state.lvl;
-            document.getElementById('hit-count').innerText = state.hits;
-            document.getElementById('streak-display').innerText = state.streak;
-            // Garante que o contador não fique negativo
-            let total = questions.length >= 500 ? questions.length : 500;
-            document.getElementById('rem-count').innerText = Math.max(0, total - state.index);
-            document.getElementById('xp-bar').style.width = (state.xp % 100) + "%";
-            localStorage.setItem('ifce_rpg_vFinal', JSON.stringify(state));
-        }
+function show() {
+  const q = QUESTIONS[i];
+  document.getElementById("category").innerText = q.c;
+  document.getElementById("question").innerText = q.q;
 
-        function load() {
-            // Se acabar as questões reais, ele gera um aviso ou reinicia
-            if(state.index >= questions.length) {
-                document.getElementById('question-text').innerText = "🏆 PARABÉNS! VOCÊ COMPLETOU O CICLO DE ESTUDOS!";
-                document.getElementById('options').innerHTML = "<button class='option' onclick='resetGame()'>RECOMEÇAR TREINAMENTO</button>";
-                return;
-            }
+  const box = document.getElementById("options");
+  box.innerHTML = "";
 
-            const q = questions[state.index];
-            document.getElementById('category-tag').innerText = q.c;
-            document.getElementById('question-text').innerText = q.q;
-            const optDiv = document.getElementById('options');
-            optDiv.innerHTML = "";
-            document.getElementById('next-btn').style.display = "none";
+  q.o.forEach((op, n) => {
+    const b = document.createElement("button");
+    b.innerText = op;
+    b.onclick = () => check(n, b);
+    box.appendChild(b);
+  });
+}
 
-            q.o.forEach((txt, i) => {
-                const b = document.createElement('button');
-                b.className = 'option';
-                b.innerText = txt;
-                b.onclick = () => {
-                    const buttons = document.querySelectorAll('.option');
-                    if(i === q.r) { 
-                        b.classList.add('correct'); 
-                        state.hits++; state.streak++; state.xp += 25; 
-                    } else { 
-                        b.classList.add('wrong'); 
-                        buttons[q.r].classList.add('correct');
-                        state.streak = 0; 
-                    }
-                    buttons.forEach(btn => btn.disabled = true);
-                    document.getElementById('next-btn').style.display = "block";
-                    if(state.xp >= state.lvl * 100) state.lvl++;
-                    updateUI();
-                };
-                optDiv.appendChild(b);
-            });
-        }
+function check(n, btn) {
+  const q = QUESTIONS[i];
+  const btns = document.querySelectorAll("button");
+  btns.forEach(b => b.disabled = true);
+  btn.classList.add(n === q.r ? "correct" : "wrong");
+}
 
-        function nextQuestion() { 
-            state.index++; 
-            updateUI();
-            load(); 
-            window.scrollTo({top: 0, behavior: 'smooth'});
-        }
+function next() {
+  i++;
+  if (i < QUESTIONS.length) show();
+  else document.body.innerHTML = "<h1>🎉 Finalizado!</h1>";
+}
 
-        function resetGame() {
-            if(confirm("Deseja resetar seu progresso e começar do zero?")) {
-                state = { index: 0, hits: 0, streak: 0, lvl: 1, xp: 0 };
-                updateUI();
-                load();
-            }
-        }
+show();
+</script>
 
-        // Inicialização segura
-        window.onload = () => {
-            updateUI();
-            load();
-        };
-    </script>
 </body>
 </html>
-
