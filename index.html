@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IFCE Questões</title>
 
+  <script src="questions.js"></script>
+
 <style>
 body {
   background:#0b0b14;
@@ -48,7 +50,6 @@ hr { border:0; border-top:1px solid #333; margin:15px 0; }
 <h3>🎯 Metas</h3>
 <div id="goals"></div>
 
-<script src="questions.js"></script>
 <script>
 /* =======================
    ESTADO DO APP
@@ -145,7 +146,15 @@ function updateStatsUI(){
 function updateGoalsUI(){
   const g = document.getElementById("goals");
   g.innerHTML = "";
-  GOALS.forEach((m,i)=>{
+  GOALS.forEach(m=>{
     const ok = stats[m.c]?.ok || 0;
     const done = ok >= m.t;
-    g.innerHTML += `<div class="meta">${done?"✅":"⬜"} ${m.t} acertos em ${m.c}</div>`;
+    g.innerHTML += `<div class="meta">${done ? "✅" : "⬜"} ${m.t} acertos em ${m.c}</div>`;
+  });
+}
+
+show();
+</script>
+
+</body>
+</html>
