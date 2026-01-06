@@ -7,68 +7,145 @@
 
 <style>
 body {
-  background:#05050a;
+  background:#0b0b14;
   color:#fff;
   font-family:system-ui;
-  text-align:center;
   margin:0;
-}
-button {
-  width:90%;
   padding:15px;
-  margin:10px 0;
-  border-radius:10px;
-  border:none;
-  background:#151515;
-  color:#fff;
 }
-.correct { background:#004422; }
-.wrong { background:#440011; }
+h2, h3 { margin:10px 0; }
+button {
+  width:100%;
+  padding:14px;
+  margin:8px 0;
+  border:none;
+  border-radius:10px;
+  background:#1c1c2b;
+  color:#fff;
+  font-size:16px;
+}
+.correct { background:#0f5132; }
+.wrong { background:#842029; }
+.meta { font-size:14px; opacity:.9; }
+hr { border:0; border-top:1px solid #333; margin:15px 0; }
 </style>
 </head>
 
 <body>
 
-<h3 id="category">Carregando…</h3>
-<h2 id="question">Aguarde…</h2>
+<h3 id="category"></h3>
+<h2 id="question"></h2>
+
 <div id="options"></div>
+
 <button onclick="next()">Próxima</button>
+
+<hr>
+
+<h3>📊 Estatísticas</h3>
+<div id="stats"></div>
+
+<h3>🎯 Metas</h3>
+<div id="goals"></div>
 
 <script src="questions.js"></script>
 <script>
-let i = 0;
+/* =======================
+   ESTADO DO APP
+======================= */
+let questions = [...QUESTIONS].sort(() => Math.random() - 0.5);
+let index = 0;
+let errors = [];
+let stats = JSON.parse(localStorage.getItem("stats")) || {};
+let goals = JSON.parse(localStorage.getItem("goals")) || {};
 
+/* =======================
+   METAS (30 exemplos)
+======================= */
+const GOALS = [
+  { c:"Português", t:5 },
+  { c:"Português", t:10 },
+  { c:"Informática", t:5 },
+  { c:"Informática", t:10 },
+  { c:"Lei 8.112", t:5 },
+  { c:"Lei 8.112", t:10 },
+  { c:"Raciocínio Lógico", t:5 },
+  { c:"Raciocínio Lógico", t:10 },
+];
+
+/* =======================
+   FUNÇÕES
+======================= */
 function show() {
-  const q = QUESTIONS[i];
+  const q = questions[index];
   document.getElementById("category").innerText = q.c;
   document.getElementById("question").innerText = q.q;
 
   const box = document.getElementById("options");
   box.innerHTML = "";
 
-  q.o.forEach((op, n) => {
+  q.o.forEach((op,i)=>{
     const b = document.createElement("button");
     b.innerText = op;
-    b.onclick = () => check(n, b);
+    b.onclick = () => answer(i,b);
     box.appendChild(b);
   });
+
+  updateStatsUI();
+  updateGoalsUI();
 }
 
-function check(n, btn) {
-  const q = QUESTIONS[i];
-  const btns = document.querySelectorAll("button");
-  btns.forEach(b => b.disabled = true);
-  btn.classList.add(n === q.r ? "correct" : "wrong");
+function answer(i,btn) {
+  const q = questions[index];
+  const buttons = document.querySelectorAll("#options button");
+  buttons.forEach(b=>b.disabled=true);
+
+  stats[q.c] = stats[q.c] || { ok:0, total:0 };
+  stats[q.c].total++;
+
+  if(i === q.r){
+    btn.classList.add("correct");
+    stats[q.c].ok++;
+  } else {
+    btn.classList.add("wrong");
+    buttons[q.r].classList.add("correct");
+    errors.push(q);
+  }
+
+  localStorage.setItem("stats",JSON.stringify(stats));
 }
 
 function next() {
-  i++;
-  if (i < QUESTIONS.length) show();
-  else document.body.innerHTML = "<h1>🎉 Finalizado!</h1>";
+  index++;
+  if(index < questions.length){
+    show();
+  } else if(errors.length){
+    questions = [...errors];
+    errors = [];
+    index = 0;
+    alert("🔁 Agora vamos repetir as que você errou!");
+    show();
+  } else {
+    document.body.innerHTML = "<h1>🎉 Parabéns! Finalizado.</h1>";
+    localStorage.clear();
+  }
 }
 
-show();
-</script>
+/* =======================
+   UI
+======================= */
+function updateStatsUI(){
+  const s = document.getElementById("stats");
+  s.innerHTML = "";
+  for(let c in stats){
+    s.innerHTML += `<div class="meta">${c}: ${stats[c].ok}/${stats[c].total}</div>`;
+  }
+}
 
-</body>
-</html>
+function updateGoalsUI(){
+  const g = document.getElementById("goals");
+  g.innerHTML = "";
+  GOALS.forEach((m,i)=>{
+    const ok = stats[m.c]?.ok || 0;
+    const done = ok >= m.t;
+    g.innerHTML += `<div class="meta">${done?"✅":"⬜"} ${m.t} acertos em ${m.c}</div>`;
